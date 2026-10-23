@@ -1,0 +1,4 @@
+interface:
+  display_name: "功能配置审查"
+  short_description: "按组内负责功能审查项目宏、大小核配置、运动类型与数据项完整性"
+  default_prompt: "使用 $active-feature-config-review 审查目标项目的组内功能宏及运动数据项配置，并与指定项目对比。"

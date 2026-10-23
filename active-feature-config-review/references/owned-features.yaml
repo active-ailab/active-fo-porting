@@ -1,0 +1,53 @@
+# 检索线索，不是固定项目交付清单；每次核实当前需求。
+sources:
+  overview: https://zepp.feishu.cn/wiki/GMH6w5NXRiUHxXkxBwrc0ePHnEd
+  support_matrix: https://zepp.feishu.cn/wiki/P6RGw4LoqiLKVpkNLbRcjpAmnWf
+features:
+  hybridcharge:
+    name: HybridCharge / LifeLoad
+    sources: [https://zepp.feishu.cn/wiki/WKVJwsbExi41Ryk4h0ScaObunZg]
+    macros: [HMI_FEATURE_SUPPORT_HEALTH_ENGINE_RTCHARGE, CFG_RTCHARGE_SUPPORT_LIFELOAD, CFG_RTCHARGE_SUPPORT_UNIFIED_EXERTION, CFG_APP_SUPPORT_BIO_CHARGE, CFG_APP_SUPPORT_ALLDAY_CHART_WAKEUP_SA, CFG_APP_SUPPORT_SPORT_IN_SLEEP, CFG_APP_SUPPORT_LIFELOAD_AND_STRESS, CFG_APP_SUPPORT_LIFELOAD_LOG, CFG_APP_SUPPORT_LIFELOAD_VOICE, CFG_APP_SUPPORT_LIFELOAD_ON_DEVICE, CFG_APP_DISABLE_SYNC_BIO_CHARGE, CFG_SPORT_BIOCHARGE_REMINDER]
+    fields: [other_biocharge]
+    notes: 身体电量宏不证明全部版本能力；继续核查Flow/小程序和同步。
+  lthr:
+    name: 乳酸阈检测
+    macros: [HMI_FEATURE_SUPPORT_3RD_GOMORE]
+    notes: 检测SDK与区间计算的执行核可以不同，授权、出值和记录另查。
+  lthr-zone:
+    name: 乳酸阈心率区间
+    macros: [HMI_FEATURE_SUPPORT_LTHR_ZONE, HMI_FEATURE_SUPPORT_SPORT_RT_ENGINE, HMI_CONFIG_BUILD_ENGINE_SPORT_RT]
+    fields: [hr_interval, hr_lthr_percent, hr_avg_lthr_percent, hr_cur_lthr_percent, hr_prev_lthr_percent]
+    notes: 查执行核宏和共享设置ltHr；百分比、区间编号和区间用时分开判断。
+  pickleball-v2:
+    name: 匹克球2.0
+    sources: [https://zepp.feishu.cn/docx/C9cKd8kZooJToQxvXQ1cIEFXnBg]
+    macros: [CFG_SPORT_SUPPORT_SPORTS_LIST_APPEND, CFG_SPORT_SUPPORT_REPLACE_PICKLEBALL_PRO]
+    sport_types: [SPORT_TYPE_PICKLE_BALL, SPORT_TYPE_PICKLEBALL_PRO]
+    group_sport_types: [SPORT_TYPE_PICKLE_BALL, SPORT_TYPE_PICKLEBALL_PRO]
+    notes: 通过实际type映射查新旧组；查支持表、默认列表和迁移。历史纪要比例口径有冲突，以当前需求为准。
+  hyrox-hsp:
+    name: HYROX / HSP联动
+    macros: [CFG_SPORT_SUPPORT_HYROX, CFG_SPORT_SUPPORT_HYROX_SIMULATION, CFG_SPORT_SUPPORT_HYROX_AUTO_SWITCH, CFG_SPORT_HYROX_TRAINING_COUNTING, CFG_SPORT_HYROX_BLOCK_TEMPLATE, HMI_FEATURE_SUPPORT_HYBRID_TRAINING_ENGINE, HMI_CONFIG_BUILD_ENGINE_HYBRID_TRAINING, CFG_SUPPORT_HYBRID_TRAINING_ENGINE_MASTER]
+    sport_types: [SPORT_TYPE_HYROX_RACE, SPORT_TYPE_HYROX_PFT, SPORT_TYPE_HYROX_TRAINING, SPORT_TYPE_HYROX_SIMULATION, SPORT_TYPE_HYBRID_TRAINING]
+    group_sport_types: [SPORT_TYPE_HYROX_RACE, SPORT_TYPE_HYROX_PFT, SPORT_TYPE_HYROX_TRAINING, SPORT_TYPE_HYROX_SIMULATION, SPORT_TYPE_HYBRID_TRAINING]
+    notes: 计数、自动换项、校准等子能力分别检查，基础宏不证明完整联动。
+  training:
+    name: 训练库 / 课程 / 计划
+    macros: [CFG_SPORT_SUPPORT_TRAINING_TEMPLATE, CFG_SPORT_SUPPORT_TRAINING_LIBRARY, CFG_SPORT_SUPPORT_TRAINLIST, CFG_SPORT_SUPPORT_TRAINLIST_BOTTOM, CFG_SPORT_TRAINCOURSE_BUILTIN_INDEX, CFG_SPORT_SUPPORT_CALENDAR, CFG_SPORT_STRENGTH_TRAINING_TEMPLATE_V2]
+    notes: 顶部/底部属于布局差异；另查资源、下发协议和实际执行。
+  equipment:
+    name: 装备管理
+    macros: [CFG_SPORT_SUPPORT_EQUIPMENT]
+    notes: 继续核实关联与同步，不虚构同名实时属性。
+  swim-strap:
+    name: 游泳Strap心率
+    macros: [CFG_SUPPORT_STRAP_HRB_IN_WATER, CFG_HEALTH_ENGINE_SUPPORT_SWIMHR, SPORT_CFG_SWIMMING_WITH_HR]
+    sport_types: [SPORT_TYPE_SWIMMING_POOL, SPORT_TYPE_OPEN_WATER_SWIMMING]
+    filtered_group_sport_types: [SPORT_TYPE_SWIMMING_POOL, SPORT_TYPE_OPEN_WATER_SWIMMING]
+    group_field_prefixes: [hr]
+    group_fields: [chart_hr]
+    notes: 区分水下实时接收、缓存、补传和记录融合。
+  screenless:
+    name: ScreenLess / 原生外设配套
+    macros: [CFG_SUPPORT_HELIO_STRAP_ADD_SA, CFG_SUPPORT_SPORT_PERIPHERAL, CFG_SUPPORT_SPORT_PERIPHERAL_ON_THE_HOMEPAGE, SUPPORTED_SPORT_PERIPHERAL_FLAG]
+    notes: 原生宏不证明安装包、权限和实际联动通过。
