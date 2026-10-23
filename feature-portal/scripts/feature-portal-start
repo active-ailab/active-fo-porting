@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Portable launcher for the bundled Feature Portal.
+# Usage: feature-portal-start [--workspace PATH] [server.py options]
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "$SELF")/feature-portal" && pwd)"
+PYTHON="${PYTHON:-}"
+if [[ -z "$PYTHON" ]]; then
+  PYTHON="$(command -v python3 || command -v python || true)"
+fi
+if [[ -z "$PYTHON" ]]; then
+  echo "python3 is required" >&2
+  exit 127
+fi
+
+# Default behavior is intentionally one-step: start the service and open the
+# system browser. Extra arguments still pass through for advanced use.
+exec "$PYTHON" "$HERE/server.py" --open "$@"

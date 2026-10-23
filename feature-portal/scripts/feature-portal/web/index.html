@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>功能移植工作台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 7h6l2 3h8M4 17h5l3-4h8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="20" cy="10" r="1.6"/><circle cx="20" cy="13" r="1.6"/>
+      </svg>
+    </div>
+    <div class="brand-txt">
+      <h1>功能移植工作台</h1>
+      <p id="wsPath">—</p>
+    </div>
+  </div>
+  <div class="env-chips" id="envChips"></div>
+</header>
+
+<nav class="steps" id="steps">
+  <button class="step active" data-step="1">
+    <span class="s-idx">1</span>
+    <span class="s-txt"><b>功能评估</b><i>文档 / 代码</i></span>
+  </button>
+  <div class="s-arrow"></div>
+  <button class="step" data-step="2">
+    <span class="s-idx">2</span>
+    <span class="s-txt"><b>代码移植</b><i>选择目录 / 拉 gerrit</i></span>
+  </button>
+  <div class="s-arrow"></div>
+  <button class="step" data-step="3">
+    <span class="s-idx">3</span>
+    <span class="s-txt"><b>编译烧录</b><i>active-build / v3dl</i></span>
+  </button>
+  <div class="s-arrow"></div>
+  <button class="step" data-step="4">
+    <span class="s-idx">4</span>
+    <span class="s-txt"><b>自测验证</b><i>结果确认</i></span>
+  </button>
+</nav>
+
+<main id="main">
+
+  <!-- ================= 步骤 1：功能评估 ================= -->
+  <section class="pane active" id="pane1">
+    <div class="pane-head">
+      <h2>功能评估</h2>
+      <p>文档与代码两项都勾选后，才能进入移植环节。</p>
+    </div>
+
+    <!-- 代码基线：先定目录 + manifest + 分支，再评估 -->
+    <div class="card baseline" id="baselineCard">
+      <div class="card-head">
+        <h3>0. 代码基线</h3>
+        <div class="head-right">
+          <span class="badge muted" id="baseBadge">读取中…</span>
+          <button class="btn ghost small" id="btnBaseRefresh">刷新</button>
+        </div>
+      </div>
+      <p class="card-sub">
+        评估读的是这份基线下的真实代码。先选目录、manifest 和分支，用
+        <code>repo_force_checkout.sh</code> 把代码更新到位，再做代码评估。
+      </p>
+
+      <div class="base-grid">
+        <div class="field span2">
+          <label>代码目录（repo 工作区根目录）</label>
+          <div class="path-row">
+            <input type="text" id="basePath" spellcheck="false" placeholder="点「选择…」浏览，或直接粘贴完整路径后回车">
+            <button class="btn ghost small" id="btnBasePick">选择…</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Manifest</label>
+          <select id="baseXml"></select>
+        </div>
+
+        <div class="field">
+          <label>分支</label>
+          <input type="text" id="baseBranch" list="baseBranchList"
+                 placeholder="留空 = 按 manifest 的 revision">
+          <datalist id="baseBranchList"></datalist>
+        </div>
+
+        <div class="field">
+          <label>并发</label>
+          <input type="number" id="baseJobs" value="8" min="1" max="32">
+        </div>
+
+        <div class="field span2">
+          <label>当前状态</label>
+          <div class="base-status" id="baseStatus">—</div>
+        </div>
+      </div>
+
+      <div class="base-actions">
+        <button class="btn primary" id="btnBaseCheckout">更新代码到该基线</button>
+        <button class="btn ghost" id="btnBaseCodegraph">刷新 CodeGraph</button>
+        <span class="danger-note">会强制丢弃各仓库未提交改动（默认保留 build/sign.pem）</span>
+      </div>
+
+      <pre class="term" id="baseLog" hidden>等待执行…</pre>
+    </div>
+
+    <div class="field">
+      <label>本次功能名称 / 关键词</label>
+      <input type="text" id="featureName" placeholder="例如：HYROX 混合训练、跳绳计数、血氧监测">
+      <span class="tip">用于匹配文档、硬件能力开关和改动文件</span>
+    </div>
+
+    <div class="eval-grid">
+      <!-- 文档评估 -->
+      <div class="eval-card" id="cardDoc">
+        <div class="eval-head">
+          <div class="eval-title">
+            <span class="dot"></span>
+            <h3>文档评估</h3>
+          </div>
+          <label class="chk" title="完成文档评估后勾选">
+            <input type="checkbox" id="chkDoc">
+            <span class="chk-box"></span>
+          </label>
+        </div>
+        <p class="eval-desc">检查需求、交互、协议、测试用例四类文档是否齐备，并给出评分。</p>
+        <button class="btn ghost" id="btnDoc">开始文档评估</button>
+        <div class="eval-body" id="bodyDoc"></div>
+      </div>
+
+      <!-- 代码评估 -->
+      <div class="eval-card" id="cardCode">
+        <div class="eval-head">
+          <div class="eval-title">
+            <span class="dot"></span>
+            <h3>代码评估</h3>
+          </div>
+          <label class="chk" title="完成代码评估后勾选">
+            <input type="checkbox" id="chkCode">
+            <span class="chk-box"></span>
+          </label>
+        </div>
+        <p class="eval-desc">topic 缺失接口 / 硬件支持 / 存储余量 / 移植工期，一次算清。</p>
+        <div class="inline-field">
+          <input type="text" id="evalTopic" placeholder="gerrit topic 链接（会带到「代码移植」步骤，那边不用再填）">
+        </div>
+        <button class="btn ghost" id="btnCode">开始代码评估</button>
+        <div class="eval-body" id="bodyCode"></div>
+      </div>
+    </div>
+
+    <div class="result-wide" id="codeResult"></div>
+  </section>
+
+  <!-- ================= 步骤 2：移植 ================= -->
+  <section class="pane" id="pane2">
+    <div class="pane-head">
+      <h2>代码移植</h2>
+      <p>先确认代码落地目录，再按 gerrit topic 一次性拉取全部 change。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>1. 目标目录</h3>
+        <span class="badge" id="pathBadge">上次选择</span>
+      </div>
+      <div class="path-row">
+        <input type="text" id="targetPath" list="recentPaths" spellcheck="false"
+               placeholder="点「浏览…」选择，或直接粘贴完整路径后回车">
+        <datalist id="recentPaths"></datalist>
+        <button class="btn" id="btnBrowse">浏览…</button>
+      </div>
+      <div class="path-note" id="pathNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>2. Gerrit Topic</h3>
+        <span class="badge" id="topicSource" hidden>沿用代码评估填写</span>
+      </div>
+      <div class="path-row">
+        <input type="text" id="gerritTopic" placeholder="https://gerrit…/#/q/topic:xxx 或 change 号 / Change-Id">
+        <button class="btn ghost" id="btnPlan">预检</button>
+        <button class="btn primary" id="btnDownload">下载代码</button>
+      </div>
+      <div class="path-note">评估阶段填过 topic 会自动带过来，这里不用再填。
+        「预检」只读：先看清每个 change 落到哪个仓库、当前分支有没有冲突风险，再决定下载。</div>
+    </div>
+
+    <div class="card" id="planCard" hidden>
+      <div class="card-head"><h3>移植预检</h3><span class="badge" id="planCount"></span></div>
+      <div id="planList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>执行日志</h3>
+        <span class="run-state" id="dlState">待执行</span>
+      </div>
+      <pre class="term" id="dlLog">等待执行…</pre>
+    </div>
+
+    <div class="card" id="conflictCard" hidden>
+      <div class="card-head">
+        <h3>移植结果与冲突</h3>
+        <button class="btn ghost small" id="btnReanalyze">重新分析工作区冲突</button>
+      </div>
+      <div id="conflictBody"></div>
+
+      <div class="tool-run">
+        <span class="tool-tag">排查</span>
+        <input type="text" id="toolCmd" placeholder="codegraph impact &lt;符号名&gt;  ·  git -C &lt;repo&gt; log --oneline -5">
+        <button class="btn ghost" id="btnToolRun">运行</button>
+      </div>
+      <pre class="term" id="toolLog" hidden></pre>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 3：编译烧录 ================= -->
+  <section class="pane" id="pane3">
+    <div class="pane-head">
+      <h2>编译与烧录</h2>
+      <p>选择项目后调用 active-build；编译通过后再决定是否刷机。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>编译目标</h3>
+        <span class="badge" id="activeBadge"></span>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Family</label>
+          <select id="selFamily"></select>
+        </div>
+        <div class="field">
+          <label>Project</label>
+          <select id="selProduct"></select>
+        </div>
+        <div class="field">
+          <label>线程数</label>
+          <input type="text" id="inpThreads" value="24">
+        </div>
+        <div class="field">
+          <label>编译类型</label>
+          <select id="selBuildMode">
+            <option value="debug">Debug</option>
+            <option value="release">Release</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>附加参数（可空）</label>
+          <input type="text" id="inpExtra" placeholder="例如 -c fw">
+        </div>
+      </div>
+      <div class="path-note" id="buildCmdNote"></div>
+      <button class="btn primary" id="btnBuild">开始编译</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>编译日志</h3>
+        <span class="run-state" id="buildState">待执行</span>
+      </div>
+      <pre class="term" id="buildLog">等待执行…</pre>
+    </div>
+
+    <div class="card success-card" id="buildOkCard" hidden>
+      <div class="ok-mark">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M4 12.5l5 5L20 6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="ok-txt">
+        <h3>编译成功</h3>
+        <p id="buildOkInfo"></p>
+      </div>
+      <button class="btn primary" id="btnGoFlash">刷机</button>
+    </div>
+
+    <div class="card" id="flashCard" hidden>
+      <div class="card-head">
+        <h3>烧录</h3>
+        <span class="run-state" id="flashState">待执行</span>
+      </div>
+      <div class="path-note" id="flashCmd"></div>
+      <pre class="term" id="flashLog">等待执行…</pre>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 4：自测 ================= -->
+  <section class="pane" id="pane4">
+    <div class="pane-head">
+      <h2>自测验证</h2>
+      <p id="selftestSub">刷机完成后自动进入，逐项确认功能是否正常。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>设备状态</h3>
+        <button class="btn ghost small" id="btnProbe">重新探测</button>
+      </div>
+      <div id="probeBox" class="probe">未探测</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>自测清单</h3>
+        <span class="run-state" id="stState"></span>
+      </div>
+      <div id="selftestList" class="checklist"></div>
+      <div class="field" style="margin-top:14px">
+        <label>问题记录 / 备注</label>
+        <textarea id="stNote" rows="3" placeholder="记录异常现象、复现步骤、日志位置…"></textarea>
+      </div>
+    </div>
+
+    <div class="card final-card" id="finalCard" hidden>
+      <h3 id="finalTitle"></h3>
+      <p id="finalText"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="actionbar">
+  <div class="hint" id="hint">请先完成文档评估和代码评估</div>
+  <div class="acts">
+    <button class="btn ghost" id="btnReset">重置流程</button>
+    <button class="btn primary" id="btnNext" disabled>下一步：代码移植</button>
+  </div>
+</footer>
+
+<!-- 目录选择弹窗 -->
+<div class="modal" id="dirModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>选择目录</h3>
+      <button class="icon-btn" id="dirClose">×</button>
+    </div>
+    <div class="dir-shortcuts" id="dirShortcuts"></div>
+    <div class="dir-path">
+      <button class="btn ghost small" id="dirUp">↑ 上级</button>
+      <input type="text" id="dirJump" spellcheck="false" placeholder="直接输入完整路径后回车" />
+    </div>
+    <div class="dir-tip">点文件夹进入下一层，选好后点右下角「选定此目录」</div>
+    <div class="dir-list" id="dirList"></div>
+    <div class="modal-foot">
+      <span class="dim" id="dirPick">未选择</span>
+      <div>
+        <button class="btn ghost" id="dirCancel">取消</button>
+        <button class="btn primary" id="dirOk">选定此目录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认刷机弹窗 -->
+<!-- 代码评估处理中：遮住整个页面，避免评估期间切换目录/重复提交 -->
+<div class="modal eval-busy" id="evalBusy" hidden aria-live="polite" aria-busy="true">
+  <div class="modal-box narrow">
+    <div class="modal-head"><h3>代码评估处理中</h3></div>
+    <div class="modal-body eval-busy-body">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="evalBusyText">正在读取 topic 代码并和本地代码对比，请稍候…</p>
+      <p class="dim">处理完成前页面操作已锁定，请不要重复点击。</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal eval-busy" id="downloadBusy" hidden aria-live="polite" aria-busy="true">
+  <div class="modal-box narrow">
+    <div class="modal-head"><h3>正在下载代码</h3></div>
+    <div class="modal-body eval-busy-body">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="downloadBusyText">正在执行 gerrit_dl.py，请稍候…</p>
+      <p class="dim">已下载的 change 会由脚本自动识别，冲突会在完成后显示。</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="flashModal" hidden>
+  <div class="modal-box narrow">
+    <div class="modal-head"><h3>编译成功</h3></div>
+    <div class="modal-body">
+      <p id="flashModalInfo">是否立即刷机？将调用 <code>v3dl app</code> 把固件写入手表。</p>
+      <p class="dim">刷机过程中请保持手表连接，不要拔线。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="flashCancel">稍后再说</button>
+      <button class="btn primary" id="flashConfirm">确认刷机</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
