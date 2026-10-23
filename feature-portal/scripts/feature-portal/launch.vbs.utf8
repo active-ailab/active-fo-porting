@@ -1,0 +1,29 @@
+Option Explicit
+
+' ============================================================
+'  功能移植工作台 · 双击启动入口
+'  实际逻辑在 launch.ps1，这里只负责用无窗口方式调用它。
+'  关闭所有页面后服务会自动退出，不需要手动停止。
+' ============================================================
+
+Dim sh, fso, here, tmp, cmd
+
+Set sh  = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+here = fso.GetParentFolderName(WScript.ScriptFullName)
+
+' PowerShell 不能直接 -File 执行 UNC 路径上的脚本，先复制到本机临时目录
+tmp = sh.ExpandEnvironmentStrings("%TEMP%") & "\feature-portal-launch.ps1"
+
+On Error Resume Next
+fso.CopyFile here & "\launch.ps1", tmp, True
+If Err.Number <> 0 Then
+  MsgBox "无法复制启动脚本到临时目录：" & vbCrLf & Err.Description, 16, "功能移植工作台"
+  WScript.Quit 1
+End If
+Err.Clear
+On Error GoTo 0
+
+cmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & tmp & """"
+sh.Run cmd, 0, False
