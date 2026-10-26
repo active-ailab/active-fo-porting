@@ -210,7 +210,7 @@ main {
 }
 .field .tip { font-size: 11.5px; color: var(--dim); }
 
-input[type=text], input[type=password], select, textarea {
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 9px;
@@ -222,18 +222,18 @@ input[type=text], input[type=password], select, textarea {
   outline: none;
   transition: .16s;
 }
-input[type=password]#openaiApiKey,
-input[type=password]#openaiApiKey:focus {
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus, textarea:focus {
   background: #0a1310 !important;
   color: var(--txt);
 }
-input[type=password]#openaiApiKey:-webkit-autofill,
-input[type=password]#openaiApiKey:-webkit-autofill:focus {
+input:not([type="checkbox"]):not([type="radio"]):-webkit-autofill,
+input:not([type="checkbox"]):not([type="radio"]):-webkit-autofill:focus {
   -webkit-text-fill-color: var(--txt);
   -webkit-box-shadow: 0 0 0 1000px #0a1310 inset;
   transition: background-color 9999s ease-out 0s;
 }
-input[type=text]:focus, select:focus, textarea:focus {
+input:not([type="checkbox"]):not([type="radio"]):focus {
   border-color: #2f7d55;
   box-shadow: 0 0 0 3px #2ecc7118;
 }
