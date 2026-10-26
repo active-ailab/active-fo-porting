@@ -451,6 +451,7 @@ select { cursor: pointer; }
 .implementation-card[hidden] { display: none; }
 .implementation-result { margin-top: 12px; }
 .model-select { min-width: 260px; width: auto !important; }
+.field-inline-label { color: var(--txt-2); font-size: 13px; white-space: nowrap; }
 
 /* 评估结果里的小块 */
 .mini-grid {

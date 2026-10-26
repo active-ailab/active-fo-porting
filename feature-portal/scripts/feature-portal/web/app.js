@@ -750,7 +750,7 @@ async function saveImplementationModel() {
 }
 
 async function loadCodexModels(apiKey, selected) {
-  const note = $('#codexModelNote');
+  const note = $('#openaiModelNote');
   note.textContent = '正在查询可用模型…';
   const r = await api('/api/codex/models', { api_key: apiKey || '' });
   const models = r.models || [];
