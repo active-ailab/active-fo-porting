@@ -1,6 +1,6 @@
 /* ==========================================================
    功能移植工作台 — 前端逻辑
-   步骤：评估 -> 移植 -> 编译烧录 -> 自测
+   步骤：前期工作 -> 功能评估 -> 功能移植 -> 代码编译 -> 功能自测
    ========================================================== */
 'use strict';
 
@@ -10,6 +10,7 @@ const S = {
   state: null,
   jobs: {},
   paths: { doc: false, code: false },
+  docChecks: { pfs: false, frr: false },
   conflictsOpen: false,
   selftest: [],
   dirty: false
@@ -281,7 +282,7 @@ function updateBuildNote() {
 
 /* --- 输入即存：目录 / topic 这些别因为没点按钮就丢了 --- */
 const LS_KEY = 'feature-portal.form';
-const FORM_FIELDS = ['featureName', 'evalTopic', 'gerritTopic', 'targetPath',
+const FORM_FIELDS = ['featureName', 'evalTopic', 'gerritTopic', 'pfsUrl', 'reqSection',
                      'basePath', 'baseBranch', 'baseXml'];
 let saveTimer = null;
 
@@ -319,15 +320,14 @@ function pickSaved(serverVal, key, fb) {
 function restoreState() {
   const st = S.state || {};
   $('#featureName').value = pickSaved(st.feature_name, 'featureName', '');
+  $('#pfsUrl').value = pickSaved('', 'pfsUrl', '');
+  $('#reqSection').value = pickSaved('', 'reqSection', '');
+  $('#feishuAppId').value = (st.feishu && st.feishu.app_id) || '';
   const savedTopic = pickSaved((st.port && st.port.topic) || '', 'gerritTopic', '');
   $('#evalTopic').value = savedTopic;
   // 评估阶段填过的 topic 直接沿用，移植步骤不用再填一次
   $('#gerritTopic').value = savedTopic;
   $('#topicSource').hidden = !savedTopic;
-  const p = normalizeWorkspacePath(pickSaved((st.port && st.port.path) || '', 'targetPath', (st.workspace || '')));
-  $('#targetPath').value = p;
-  $('#pathNote').textContent = p ? '上次选择：' + p : '还没选目录：点「浏览」或直接在框里粘贴路径';
-
   // 代码基线：默认沿用上次的目录
   const bl = st.baseline || {};
   $('#basePath').value = normalizeWorkspacePath(pickSaved(bl.path, 'basePath',
@@ -336,15 +336,21 @@ function restoreState() {
   if (br) $('#baseBranch').value = br;
 
   // 最近用过的目录，做成下拉候选
-  fillRecentPaths((st.recent_paths || []).concat([p, $('#basePath').value]));
+  fillRecentPaths((st.recent_paths || []).concat([$('#basePath').value]));
 
   S.paths.doc = !!(st.eval && st.eval.doc && st.eval.doc.done);
+  S.docChecks.pfs = !!(st.eval && st.eval.pfs);
+  S.docChecks.frr = !!(st.eval && st.eval.frr);
   S.paths.code = !!(st.eval && st.eval.code && st.eval.code.done);
+  if (st.pfs && st.pfs.content) {
+    renderPfsEditor(st.pfs.content, null, '上次保存的 PFS');
+    $('#implementationCard').hidden = false;
+  }
   S.conflictsOpen = !!(st.port && (st.port.conflicts || []).length);
   syncChecks();
 
   if (st.build && st.build.ok) {
-    goStep(3, true);
+    goStep(4, true);
     $('#buildState').textContent = '上次编译成功';
     $('#buildState').className = 'run-state ok';
     showBuildOk({});
@@ -366,8 +372,10 @@ function fillRecentPaths(paths) {
 }
 
 function syncChecks() {
-  $('#chkDoc').checked = S.paths.doc;
   $('#chkCode').checked = S.paths.code;
+  $('#chkPfs').checked = S.docChecks.pfs;
+  $('#chkFrr').checked = S.docChecks.frr;
+  S.paths.doc = S.docChecks.pfs && S.docChecks.frr;
   $('#cardDoc').classList.toggle('checked', S.paths.doc);
   $('#cardCode').classList.toggle('checked', S.paths.code);
   updateNext();
@@ -375,7 +383,7 @@ function syncChecks() {
 
 /* ---------------- 步骤切换 ---------------- */
 function goStep(n, force) {
-  if (!force && n > 1 && !(S.paths.doc && S.paths.code)) {
+  if (!force && n > 2 && !(S.paths.doc && S.paths.code)) {
     toast('请先完成文档评估和代码评估并勾选', 'warn');
     return;
   }
@@ -386,11 +394,11 @@ function goStep(n, force) {
     const idx = +b.dataset.step;
     b.classList.toggle('active', idx === n);
     b.classList.toggle('done', idx < n);
-    b.classList.toggle('locked', idx > 1 && !(S.paths.doc && S.paths.code));
+    b.classList.toggle('locked', idx > 2 && !(S.paths.doc && S.paths.code));
   });
-  if (n === 2) refreshPortState();
-  if (n === 3) updateBuildNote();
-  if (n === 4) loadSelftest();
+  if (n === 3) refreshPortState();
+  if (n === 4) updateBuildNote();
+  if (n === 5) loadSelftest();
   updateNext();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   saveState();
@@ -400,22 +408,26 @@ function updateNext() {
   const btn = $('#btnNext');
   const hint = $('#hint');
   if (S.step === 1) {
+    btn.disabled = false;
+    btn.textContent = '下一步：功能评估';
+    hint.textContent = '准备工作完成后进入功能评估';
+  } else if (S.step === 2) {
     const ok = S.paths.doc && S.paths.code;
     btn.disabled = !ok;
-    btn.textContent = '下一步：代码移植';
-    hint.textContent = ok ? '两项评估已完成，可以进入移植'
+    btn.textContent = '下一步：功能移植';
+    hint.textContent = ok ? '两项评估已完成，可以进入功能移植'
       : '请完成文档评估和代码评估，并勾选两个多选框';
-  } else if (S.step === 2) {
+  } else if (S.step === 3) {
     const blocked = S.conflictsOpen;
     btn.disabled = blocked;
-    btn.textContent = '下一步：编译';
+    btn.textContent = '下一步：代码编译';
     hint.textContent = blocked
       ? '存在未解决的冲突，解决后点「重新分析工作区冲突」'
-      : '代码已落地，可以进入编译';
-  } else if (S.step === 3) {
+      : '代码已落地，可以进入代码编译';
+  } else if (S.step === 4) {
     btn.disabled = false;
-    btn.textContent = '下一步：自测';
-    hint.textContent = '编译烧录完成后进入自测';
+    btn.textContent = '下一步：功能自测';
+    hint.textContent = '编译烧录完成后进入功能自测';
   } else {
     btn.disabled = true;
     btn.textContent = '流程结束';
@@ -426,12 +438,15 @@ function updateNext() {
 async function saveState() {
   try {
     const topic = ($('#gerritTopic').value || $('#evalTopic').value || '').trim();
-    const port = { path: $('#targetPath').value };
+    const port = { path: $('#basePath').value };
     if (topic) port.topic = topic;  // 空值不要写回去，否则会覆盖评估阶段记下的 topic
     await api('/api/state', {
       feature_name: $('#featureName').value.trim(),
+      feishu: { app_id: $('#feishuAppId').value.trim() },
       eval: {
         doc: { done: S.paths.doc },
+        pfs: S.docChecks.pfs,
+        frr: S.docChecks.frr,
         code: { done: S.paths.code }
       },
       port: port,
@@ -448,7 +463,7 @@ async function saveState() {
       }
     });
     lsSaveLocal();
-    rememberPath($('#targetPath').value);
+    rememberPath($('#basePath').value);
   } catch (e) { /* 静默 */ }
 }
 
@@ -511,16 +526,14 @@ async function loadBaseline(keepSel) {
   $('#baseBadge').textContent = '读取中…';
   let r;
   try {
-    r = await api('/api/repo/baseline');
+    r = await api('/api/repo/baseline', { path: $('#basePath').value.trim() });
   } catch (e) {
     $('#baseBadge').textContent = '读取失败';
-    $('#baseStatus').innerHTML = '<span class="v warn">' + esc(e.message) + '</span>';
     if (btn) btn.disabled = false;
     return;
   }
   if (!r.ok) {
     $('#baseBadge').textContent = '不可用';
-    $('#baseStatus').innerHTML = '<span class="v warn">' + esc(r.error || '读取失败') + '</span>';
     if (btn) btn.disabled = false;
     return;
   }
@@ -589,7 +602,6 @@ function renderBaseStatus() {
     parts.push('<span><span class="k">编译配置</span> <span class="v">'
       + esc((ab.family || '?') + ' / ' + (ab.project || '?')) + '</span></span>');
   }
-  $('#baseStatus').innerHTML = parts.join('');
   $('#baseBadge').textContent = r.has_repo
     ? ((r.manifests || []).length + ' 个 manifest')
     : '非 repo 目录';
@@ -607,7 +619,7 @@ async function doCheckout() {
   const path = ($('#basePath').value || '').trim();
   const xml = $('#baseXml').value || '';
   const branch = ($('#baseBranch').value || '').trim();
-  const jobs = $('#baseJobs').value || '8';
+  const jobs = '8';
   if (!path) { toast('请先选择代码目录', 'warn'); return; }
   if (!S.base || !S.base.checkout_script_ok) {
     toast('该目录下没有 repo_force_checkout.sh', 'danger');
@@ -675,7 +687,7 @@ async function refreshBaseCodegraph() {
   }
 }
 
-/* ---------------- 步骤 1：文档评估 ---------------- */
+/* ---------------- 步骤 2：文档评估 ---------------- */
 async function runDocEval() {
   const name = $('#featureName').value.trim();
   const card = $('#cardDoc');
@@ -687,7 +699,7 @@ async function runDocEval() {
     body.innerHTML = renderDoc(r);
     if (!r.ok) { toast(r.error || '文档评估失败', 'danger'); }
     else {
-      S.paths.doc = true;
+      S.docChecks.pfs = true;
       syncChecks();
       saveState();
     }
@@ -695,6 +707,158 @@ async function runDocEval() {
     body.innerHTML = '<div class="alert danger">' + esc(e.message) + '</div>';
   } finally {
     card.classList.remove('running');
+  }
+}
+
+async function refreshFeishuStatus() {
+  try {
+    const r = await api('/api/feishu/status');
+    $('#feishuBadge').textContent = r.authorized ? '已授权' : (r.cli ? '待授权' : '未安装');
+    $('#feishuStatus').textContent = r.message || '—';
+    $('#feishuNote').textContent = r.cli_path ? r.cli_path : '请安装 lark-cli 后授权';
+  } catch (e) { $('#feishuStatus').textContent = '检查失败：' + e.message; }
+}
+
+async function refreshCodexPrep() {
+  try {
+    const r = await api('/api/codex/status');
+    $('#codexPrepBadge').textContent = r.configured ? '已配置' : '未配置';
+    $('#codexPrepNote').textContent = r.cli
+      ? '已连接本机 Codex 登录态，评估将通过 Codex CLI 执行，不使用 API 余额。'
+      : (r.configured ? ('当前模型：' + r.model) : '请输入 API Key 后保存。');
+    await loadCodexModels('', r.model);
+  } catch (e) { $('#codexPrepNote').textContent = '检查失败：' + e.message; }
+}
+
+async function refreshImplementationModels() {
+  const r = await api('/api/codex/cli-models');
+  const select = $('#implementationModel');
+  select.innerHTML = '<option value="">请选择 Codex 模型</option>' +
+    (r.models || []).map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if (r.selected) select.value = r.selected;
+  $('#codexModelBadge').textContent = r.models && r.models.length ? `${r.models.length} 个可用` : '无模型';
+  $('#codexModelNote').textContent = r.message || (r.error || '');
+}
+
+async function saveImplementationModel() {
+  const model = $('#implementationModel').value;
+  if (!model) { toast('请先选择 Codex 模型', 'warn'); return; }
+  const r = await api('/api/codex/implementation-model', { model: model });
+  if (!r.ok) { toast(r.error || '模型保存失败', 'danger'); return; }
+  $('#codexModelNote').textContent = '已保存：' + r.model;
+  toast('Codex 模型已保存', 'ok');
+}
+
+async function loadCodexModels(apiKey, selected) {
+  const note = $('#codexModelNote');
+  note.textContent = '正在查询可用模型…';
+  const r = await api('/api/codex/models', { api_key: apiKey || '' });
+  const models = r.models || [];
+  const select = $('#openaiModel');
+  select.innerHTML = models.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if (selected && models.includes(selected)) select.value = selected;
+  else if (models.length) select.value = models[0];
+  note.textContent = r.message || '请选择模型后保存。';
+}
+
+async function saveCodexConfig() {
+  const key = $('#openaiApiKey').value.trim();
+  const model = $('#openaiModel').value.trim();
+  if (!key) { toast('请输入 OpenAI API Key', 'warn'); return; }
+  const r = await api('/api/codex/config', { api_key: key, model: model });
+  $('#openaiApiKey').value = '';
+  if (r.ok) { toast('Codex 配置已保存', 'ok'); refreshCodexPrep(); }
+  else toast(r.error || '保存失败', 'danger');
+}
+
+async function runPfsEval() {
+  const url = ($('#pfsUrl').value || '').trim();
+  const section = ($('#reqSection').value || '').trim();
+  if (!url) { toast('请先填写飞书需求链接', 'warn'); return; }
+  const body = $('#pfsBody');
+  body.innerHTML = '<div class="dim">正在读取需求标题下方内容并生成 PFS…</div>';
+  try {
+    const r = await api('/api/eval/pfs-link', { url: url, section: section });
+    if (!r.ok) {
+      $('#pfsNote').textContent = r.error || '需求解析失败';
+      body.innerHTML = `<div class="alert warn">${esc(r.error || '需求解析失败')}</div>`;
+      return;
+    }
+    $('#pfsNote').textContent = '需求已解析，PFS 已保存：' + (r.skill_path || '');
+    S.docChecks.pfs = true;
+    syncChecks();
+    saveState();
+    $('#implementationCard').hidden = false;
+    renderPfsEditor(r.pfs || '', r.analysis || null, r.source || '本次需求');
+  } catch (e) { body.innerHTML = `<div class="alert danger">${esc(e.message)}</div>`; }
+}
+
+function renderPfsEditor(content, analysis, source) {
+  const body = $('#pfsBody');
+  const a = analysis || {};
+  let html = `<div class="alert info"><b>已加载 PFS 需求</b> · ${esc(source || '')}</div>`;
+  if (a.summary) html += `<div class="sect"><div class="sect-head"><b>本次修改总结</b></div><div>${esc(a.summary)}</div></div>`;
+  if ((a.scope || []).length) html += `<div class="sect"><div class="sect-head"><b>影响范围</b></div><ul>${a.scope.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  html += `<div class="sect"><div class="sect-head"><b>生成的 PFS 需求（可编辑）</b></div><textarea id="pfsEditor" class="pfs-editor" rows="10">${esc(content || '')}</textarea><div class="base-actions"><button class="btn primary small" id="btnSavePfs">保存 PFS 并更新自测</button><span class="path-note" id="pfsSaveNote">保存后自测清单会按最新内容刷新。</span></div></div>`;
+  body.innerHTML = html;
+  $('#btnSavePfs').onclick = saveEditedPfs;
+}
+
+async function saveEditedPfs() {
+  const content = ($('#pfsEditor').value || '').trim();
+  if (!content) { toast('PFS 内容不能为空', 'warn'); return; }
+  const r = await api('/api/pfs/save', { content: content });
+  if (!r.ok) { toast(r.error || 'PFS 保存失败', 'danger'); return; }
+  $('#pfsSaveNote').textContent = 'PFS 已保存，自测清单已更新：' + r.items.length + ' 项';
+  if (S.step === 5) loadSelftest();
+  toast('PFS 已保存', 'ok');
+}
+
+async function runImplementation() {
+  const card = $('#implementationCard');
+  const badge = $('#implementationBadge');
+  const log = $('#implementationLog');
+  const result = $('#implementationResult');
+  badge.textContent = '执行中';
+  badge.className = 'badge warn';
+  log.hidden = false;
+  log.textContent = '正在启动本地 Codex，并查询 CodeGraph…';
+  result.innerHTML = '';
+  try {
+    const targetPath = $('#basePath').value.trim();
+    if (!targetPath) throw new Error('请先在准备工作中选择代码基线目录');
+    const r = await api('/api/implementation/start', { path: targetPath });
+    if (!r.ok) throw new Error(r.error || '功能实现启动失败');
+    const job = await followJob(r.job.id, log, badge);
+    const out = (job.lines || []).join('\n');
+    const done = await api('/api/implementation/result', { output: out, job_status: job.status });
+    const hasChanges = (done.changed_dirs || []).length > 0;
+    badge.textContent = job.status !== 'ok' ? '修改失败' : (hasChanges ? '修改完成' : '未检测到修改');
+    badge.className = 'badge ' + (job.status !== 'ok' ? 'danger' : (hasChanges ? 'ok' : 'warn'));
+    let html = `<div class="path-note">实际写入代码目录：<code>${esc(job.cwd || targetPath)}</code></div>`;
+    const title = job.status !== 'ok' ? '代码修改失败' : (hasChanges ? '代码修改完成' : '执行完成但没有检测到代码修改');
+    html += `<div class="alert ${job.status !== 'ok' ? 'danger' : (hasChanges ? 'ok' : 'warn')}"><b>${title}</b>`
+      + (job.status !== 'ok' ? '，请检查执行日志。' : (hasChanges ? '，请根据下面测试重点继续验证。' : '，请查看错误原因和诊断日志。')) + '</div>';
+    if (done.summary) html += `<div class="alert info"><b>实现总结：</b>${esc(done.summary)}</div>`;
+    html += '<div class="sect"><div class="sect-head"><b>本次修改目录</b></div><ul>'
+      + ((done.changed_dirs || []).length ? done.changed_dirs : ['本次没有检测到新的目录修改']).map(x => `<li class="mono">${esc(x)}</li>`).join('')
+      + '</ul></div>';
+    html += '<div class="sect"><div class="sect-head"><b>测试重点</b></div><ul>'
+      + (done.tests || []).map(x => `<li>${esc(x)}</li>`).join('')
+      + '</ul></div>';
+    if (done.error_reason) html += `<div class="alert warn"><b>错误原因 / 状态说明：</b>${esc(done.error_reason)}</div>`;
+    const diag = done.diagnostics || {};
+    if ((diag.error_lines || []).length) {
+      html += `<div class="sect"><div class="sect-head"><b>错误日志</b></div><pre class="term" style="white-space:pre-wrap">${esc(diag.error_lines.join('\n'))}</pre></div>`;
+    }
+    html += `<details class="sect"><summary>执行诊断日志</summary><pre class="term" style="white-space:pre-wrap">${esc(diag.output_tail || '无输出')}</pre></details>`;
+    if ((done.risks || []).length) html += `<div class="alert warn">风险：${done.risks.map(esc).join('；')}</div>`;
+    if (done.skill_path) html += `<div class="path-note">规范 Skill：${esc(done.skill_path)}</div>`;
+    result.innerHTML = html;
+  } catch (e) {
+    badge.textContent = '失败';
+    badge.className = 'badge danger';
+    log.textContent += '\n' + e.message;
   }
 }
 
@@ -726,13 +890,12 @@ function renderDoc(r) {
   return html;
 }
 
-/* ---------------- 步骤 1：代码评估 ---------------- */
+/* ---------------- 步骤 2：代码评估 ---------------- */
 /* 评估的「本地基准」：代码基线目录优先，其次移植目录，最后用 state 里记的 */
 function evalLocalPath() {
   const b = ($('#basePath') || {}).value || '';
-  const t = ($('#targetPath') || {}).value || '';
   const st = S.state || {};
-  return (b || t || (st.baseline && st.baseline.path) ||
+  return (b || (st.baseline && st.baseline.path) ||
     (st.port && st.port.path) || '').trim();
 }
 
@@ -744,9 +907,20 @@ async function runCodeEval() {
     toast('请先在「0. 代码基线」里选择代码目录', 'warn');
     return;
   }
-  if (!S.base || !S.base.has_repo) {
-    toast('当前目录不是 repo 工作区，请重新选择', 'warn');
-    return;
+  const selectedPath = evalLocalPath();
+  if (!S.base || S.base.workspace !== selectedPath || !S.base.has_repo) {
+    try {
+      const base = await api('/api/repo/baseline', { path: selectedPath });
+      S.base = base;
+      if (!base.ok || !base.has_repo) {
+        toast((base.error || '当前目录不是 repo 工作区') + '：' + selectedPath, 'warn');
+        $('#baseBadge').textContent = '非 repo 目录';
+        return;
+      }
+    } catch (e) {
+      toast('无法验证代码目录：' + e.message, 'danger');
+      return;
+    }
   }
   const card = $('#cardCode');
   const body = $('#bodyCode');
@@ -1023,11 +1197,8 @@ function sect(num, title, right, body) {
   </div>`;
 }
 
-/* ---------------- 步骤 2：移植 ---------------- */
+/* ---------------- 步骤 3：功能移植 ---------------- */
 function refreshPortState() {
-  const p = ($('#targetPath').value || '').trim();
-  $('#pathBadge').textContent = p ? '当前目录' : '未选择';
-  if (p) $('#pathNote').textContent = '代码将落在此工作区下的各 git 仓库；上次选择：' + p;
   // 评估阶段填的 topic 自动带到本步骤，不用再填一次
   const et = ($('#evalTopic').value || '').trim();
   if (et && !($('#gerritTopic').value || '').trim()) {
@@ -1044,7 +1215,7 @@ let dirState = { path: '', pick: '', target: 'port' };
 async function openDirModal(start, target) {
   dirState.target = target || 'port';
   $('#dirModal').hidden = false;
-  const cur = dirState.target === 'base' ? $('#basePath').value : $('#targetPath').value;
+  const cur = $('#basePath').value;
   await loadDir(start || cur || S.boot.env.workspace);
 }
 
@@ -1099,8 +1270,8 @@ async function loadDir(path) {
 async function gerritPlan() {
   const url = $('#gerritTopic').value.trim();
   if (!url) { toast('先填 gerrit topic 链接', 'warn'); return; }
-  const path = $('#targetPath').value.trim();
-  if (!path) { toast('先选目标目录', 'warn'); return; }
+  const path = $('#basePath').value.trim();
+  if (!path) { toast('请先在代码评估中选择代码目录', 'warn'); return; }
   const card = $('#planCard');
   card.hidden = false;
   $('#planList').innerHTML = '<div class="dim">正在定位仓库、读各仓库当前分支与工作区状态…</div>';
@@ -1160,7 +1331,7 @@ async function gerritPlan() {
 async function gerritDownload() {
   const url = $('#gerritTopic').value.trim();
   if (!url) { toast('先填 gerrit topic 链接', 'warn'); return; }
-  const path = $('#targetPath').value.trim();
+  const path = $('#basePath').value.trim();
   const busy = $('#downloadBusy');
   busy.hidden = false;
   const logEl = $('#dlLog');
@@ -1203,7 +1374,11 @@ async function handlePortResult(output) {
     $('#dlState').textContent = '全部合入';
     $('#dlState').className = 'run-state ok';
     S.conflictsOpen = false;
-    $('#conflictCard').hidden = true;
+    if (r.gapp_390_adaptation && r.gapp_390_adaptation.checked) {
+      renderConflicts(r);
+    } else {
+      $('#conflictCard').hidden = true;
+    }
     updateNext();
     toast('代码已全部 cherry-pick 完成', 'ok');
     const st = await api('/api/state', {
@@ -1229,6 +1404,35 @@ function renderConflicts(r) {
   updateNext();
 
   let html = '';
+  const sr = r.screen_review || {};
+  if (sr.checked) {
+    html += `<div class="sect" style="margin-bottom:14px"><div class="sect-head"><b>topic 代码 Screen 检查</b>`
+      + `<span class="badge ${sr.new_screen ? 'danger' : ''}">${sr.new_screen ? '发现新增 Screen 线索' : '未发现新增 Screen'}</span></div>`
+      + `<div class="alert ${sr.new_screen ? 'warn' : 'info'}">${esc(sr.message || '')}</div>`;
+    if ((sr.screens || []).length) {
+      html += '<table class="tbl"><thead><tr><th>application 文件</th><th>行号</th><th>importScreen</th></tr></thead><tbody>';
+      sr.screens.forEach(x => { html += `<tr><td class="mono">${esc(x.file)}</td><td>${esc(x.line)}</td><td class="mono">${(x.imports || []).map(esc).join('<br>')}</td></tr>`; });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+  }
+  const ga = r.gapp_390_adaptation || {};
+  if (ga.checked) {
+    html += '<div class="sect" style="margin-bottom:14px"><div class="sect-head">'
+      + '<b>480 gapp / style → 390×450 适配检查</b>'
+      + `<span class="badge ${ga.adapt_required ? 'danger' : ''}">`
+      + (ga.adapt_required ? `需要适配 ${ga.adapt_required} 项` : '已包含 390 适配')
+      + '</span></div>';
+    html += `<div class="alert ${ga.adapt_required ? 'warn' : 'ok'}">`
+      + `检查规则：${esc(ga.target_resolution || '390×450')}，${esc(ga.style_rule || '')}</div>`;
+    html += '<table class="tbl"><thead><tr><th>480 文件</th><th>390 目标</th><th>类型</th><th>结论</th></tr></thead><tbody>';
+    (ga.items || []).forEach(x => {
+      html += `<tr><td class="mono">${esc(x.source_480)}</td><td class="mono">${esc(x.target_390)}</td>`
+        + `<td>${esc(x.kind)}</td><td class="${x.status === 'ok' ? 'g' : 'r'}">`
+        + `${x.status === 'ok' ? '已修改' : '缺少 390 修改，需按 390×450 适配'}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
   // ---- 失败原因：把每条 change 的 state/message 摊开 ----
   const chs = r.changes || [];
   if (chs.length) {
@@ -1310,7 +1514,7 @@ function renderConflicts(r) {
 }
 
 async function reanalyzeConflicts() {
-  const repo = $('#targetPath').value.trim() || S.boot.env.workspace;
+  const repo = $('#basePath').value.trim() || S.boot.env.workspace;
   $('#conflictCard').hidden = false;
   $('#conflictBody').innerHTML = '<div class="dim">扫描未解决冲突…</div>';
   try {
@@ -1343,7 +1547,7 @@ async function runToolCmd() {
   const logEl = $('#toolLog');
   logEl.hidden = false;
   logEl.textContent = '';
-  const cwd = $('#targetPath').value.trim() || S.boot.env.workspace;
+  const cwd = $('#basePath').value.trim() || S.boot.env.workspace;
   $('#btnToolRun').disabled = true;
   try {
     const r = await api('/api/tool/run', { cmd: cmd, cwd: cwd });
@@ -1364,6 +1568,7 @@ async function runToolCmd() {
 async function followJob(jobId, logEl, stateEl) {
   let cursor = 0;
   let idle = 0;
+  const allLines = [];
   while (true) {
     let r;
     try { r = await api('/api/job?id=' + jobId + '&since=' + cursor); }
@@ -1371,6 +1576,7 @@ async function followJob(jobId, logEl, stateEl) {
     if (!r.ok) break;
     const j = r.job;
     if (j.lines && j.lines.length) {
+      allLines.push(...j.lines);
       appendLog(logEl, j.lines);
     }
     cursor = j.cursor;
@@ -1379,6 +1585,7 @@ async function followJob(jobId, logEl, stateEl) {
         stateEl.textContent = j.status === 'ok' ? '成功 (rc=0)' : '失败 (rc=' + j.rc + ')';
         stateEl.className = 'run-state ' + (j.status === 'ok' ? 'ok' : 'fail');
       }
+      j.lines = allLines;
       return j;
     }
     idle++;
@@ -1407,7 +1614,7 @@ function appendLog(el, lines) {
   el.scrollTop = el.scrollHeight;
 }
 
-/* ---------------- 步骤 3：编译 ---------------- */
+/* ---------------- 步骤 4：代码编译 ---------------- */
 async function startBuild() {
   const fam = $('#selFamily').value;
   const prod = $('#selProduct').value;
@@ -1501,7 +1708,7 @@ async function doFlash() {
     await api('/api/flash/result', { ok: ok, mode: 'app' });
     if (ok) {
       toast('刷机完成，进入自测', 'ok');
-      goStep(4, true);
+      goStep(5, true);
     } else {
       toast('刷机失败，请检查设备连接', 'danger');
     }
@@ -1512,7 +1719,7 @@ async function doFlash() {
   }
 }
 
-/* ---------------- 步骤 4：自测 ---------------- */
+/* ---------------- 步骤 5：功能自测 ---------------- */
 async function loadSelftest() {
   try {
     const r = await api('/api/selftest/items');
@@ -1593,7 +1800,7 @@ function bind() {
   $$('.step').forEach(b => {
     b.onclick = () => {
       const n = +b.dataset.step;
-      if (n > 1 && !(S.paths.doc && S.paths.code)) {
+      if (n > 2 && !(S.paths.doc && S.paths.code)) {
         toast('完成两项评估后才能解锁后续步骤', 'warn');
         return;
       }
@@ -1602,7 +1809,7 @@ function bind() {
   });
 
   $('#btnNext').onclick = () => {
-    if (S.step < 4) goStep(S.step + 1);
+    if (S.step < 5) goStep(S.step + 1);
   };
 
   // 代码基线
@@ -1618,21 +1825,40 @@ function bind() {
   $('#btnBaseCodegraph').onclick = refreshBaseCodegraph;
   $('#baseXml').onchange = onBaseXmlChange;
   $('#btnBaseCheckout').onclick = doCheckout;
-
-  // 步骤 1
-  $('#btnDoc').onclick = runDocEval;
-  $('#btnCode').onclick = runCodeEval;
-  $('#chkDoc').onchange = (e) => {
-    S.paths.doc = e.target.checked; syncChecks(); saveState();
+  $('#btnFeishuAuth').onclick = () => {
+    toast('请在启动 Feature Portal 的终端完成 lark-cli auth login；授权后点击刷新页面。', 'info');
+    refreshFeishuStatus();
   };
+  $('#feishuAppId').onchange = saveState;
+  refreshFeishuStatus();
+  $('#btnCodexConfig').onclick = saveCodexConfig;
+  $('#btnCodexModels').onclick = () => loadCodexModels($('#openaiApiKey').value.trim(), $('#openaiModel').value);
+  refreshCodexPrep();
+  $('#btnRefreshCodexModels').onclick = refreshImplementationModels;
+  $('#btnSaveImplementationModel').onclick = saveImplementationModel;
+  refreshImplementationModels();
+
+  // 功能评估：解析需求后自动完成文档评估
+  $('#btnCode').onclick = runCodeEval;
+  $('#btnPfs').onclick = runPfsEval;
+  $('#btnImplement').onclick = runImplementation;
+  api('/api/codex/status').then(r => {
+    if (!$('#pfsNote').textContent || $('#pfsNote').textContent.includes('Codex')) {
+      $('#pfsNote').textContent = r.configured ? '填写飞书链接和需求标题后生成 PFS。' : '请先完成飞书授权后解析需求。';
+    }
+  }).catch(() => { /* 需求解析不依赖 Codex */ });
   $('#chkCode').onchange = (e) => {
     S.paths.code = e.target.checked; syncChecks(); saveState();
+  };
+  $('#chkPfs').onchange = (e) => {
+    S.docChecks.pfs = e.target.checked; syncChecks(); saveState();
+  };
+  $('#chkFrr').onchange = (e) => {
+    S.docChecks.frr = e.target.checked; syncChecks(); saveState();
   };
   $('#featureName').onchange = saveState;
 
   // 步骤 2
-  $('#btnBrowse').onclick = () => openDirModal(null, 'port');
-  $('#targetPath').onchange = () => { refreshPortState(); saveState(); };
   $('#dirJump').onkeydown = (e) => {
     if (e.key !== 'Enter') return;
     const p = (e.target.value || '').trim();
@@ -1647,11 +1873,6 @@ function bind() {
     if (!picked) { toast('还没选目录', 'warn'); return; }
     if (dirState.target === 'base') {
       switchWorkspace(picked);
-    } else {
-      $('#targetPath').value = picked;
-      refreshPortState();
-      saveState();
-      toast('代码目录已设为 ' + picked, 'ok');
     }
   };
   $('#btnPlan').onclick = gerritPlan;

@@ -1,0 +1,277 @@
+{
+  "status": "partial",
+  "at": "2026-10-23 18:06:38",
+  "payload": {
+    "status": "partial",
+    "mode": "download",
+    "gerrit": "https://gerrit.huami.com",
+    "config": "/home/hgw/shaolu/aitools/mcp-servers/config/gerrit_config.json",
+    "link_type": "topic",
+    "topic": "%22hyrox%E6%A0%A1%E5%87%86%E4%BC%98%E5%8C%96-master%22",
+    "count": 8,
+    "applied": 5,
+    "failed": 3,
+    "changes": [
+      {
+        "number": 1065222,
+        "project": "firmware/huamiOS/framework/engine/healthEngine",
+        "branch": "master",
+        "subject": "feat | ABS-2951 > 实时charge适配hyrox运动支持后台自动校准",
+        "patchset": 5,
+        "sha": "e1e024321df150739b9d52197d078e8f1bce4d85",
+        "ref": "refs/changes/22/1065222/5",
+        "repo": "/home/hgw/pamir/framework/engine/healthEngine",
+        "state": "error",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [],
+        "head_before": null,
+        "head_after": null,
+        "message": "工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash\nM rtcharge_engine.c",
+        "files": [
+          "rtcharge_engine.c"
+        ]
+      },
+      {
+        "number": 1065599,
+        "project": "firmware/huamiOS/packages/services/sport",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 1,
+        "sha": "198dd06d7296ff07f4ad9da0160328528ba7e04f",
+        "ref": "refs/changes/99/1065599/1",
+        "repo": "/home/hgw/pamir/packages/services/sport",
+        "state": "applied_auto",
+        "conflicted_files": [
+          "include/hyrox_sim/sport_hybrid_training_service.h"
+        ],
+        "auto_resolved": [],
+        "tried": [
+          "cherry-pick",
+          "单侧为空自动取另一侧"
+        ],
+        "head_before": "9c250cb5fdc368d60fa6da442b3fd25d299b9ff2",
+        "head_after": "fd31ca74e7e05a45a64111cd6286e7d6d4dae2b9",
+        "message": "冲突已自动解决（冲突块单侧为空，取另一侧）：。请复核这些文件",
+        "files": [
+          "include/hyrox_sim/sport_hybrid_training_service.h",
+          "src/hyrox_sim/sport_hybrid_training_service.c"
+        ]
+      },
+      {
+        "number": 1065718,
+        "project": "firmware/huamiOS/packages/apps/sports",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 1,
+        "sha": "ff47bf5fc1760dd9695142a6ec2ded5caeead076",
+        "ref": "refs/changes/18/1065718/1",
+        "repo": "/home/hgw/pamir/packages/apps/sports",
+        "state": "already_applied",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [
+          "cherry-pick"
+        ],
+        "head_before": "4e4b5b9d1a28807bffd69f31bdcd69a682620883",
+        "head_after": null,
+        "message": "cherry-pick 结果为空(内容已在当前分支)，已 --skip",
+        "files": [
+          "include/manager/sport_save_hyrox_manager.h",
+          "src/manager/sport_save_hyrox_manager.c"
+        ]
+      },
+      {
+        "number": 1065767,
+        "project": "firmware/huamiOS/packages/services/sport",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 2,
+        "sha": "d51004f79afabef48f8c339a35b393aa463e5862",
+        "ref": "refs/changes/67/1065767/2",
+        "repo": "/home/hgw/pamir/packages/services/sport",
+        "state": "applied_auto",
+        "conflicted_files": [
+          "src/hyrox_sim/sport_hybrid_training_service.c"
+        ],
+        "auto_resolved": [
+          "src/hyrox_sim/sport_hybrid_training_service.c"
+        ],
+        "tried": [
+          "cherry-pick",
+          "单侧为空自动取另一侧",
+          "cherry-pick -X theirs"
+        ],
+        "head_before": "fd31ca74e7e05a45a64111cd6286e7d6d4dae2b9",
+        "head_after": "8c7faed07d000bedccddc297c32f5c4eeb450cc6",
+        "message": "冲突按 change 侧整体解决（-X theirs）：src/hyrox_sim/sport_hybrid_training_service.c。本地侧的改动被让掉了，务必逐个 review",
+        "files": [
+          "include/hyrox_sim/sport_hybrid_training_service.h",
+          "src/hyrox_sim/sport_hybrid_training_service.c"
+        ]
+      },
+      {
+        "number": 1065785,
+        "project": "firmware/huamiOS/ui/translations",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 1,
+        "sha": "dcd5b49b90f59619944deb3951308aa6913f338e",
+        "ref": "refs/changes/85/1065785/1",
+        "repo": "/home/hgw/pamir/ui/translations",
+        "state": "already_applied",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [
+          "cherry-pick"
+        ],
+        "head_before": "db29370782178b9a3519015de821978ebe8c1181",
+        "head_after": null,
+        "message": "cherry-pick 结果为空(内容已在当前分支)，已 --skip",
+        "files": [
+          "Sports/translations.csv"
+        ]
+      },
+      {
+        "number": 1065842,
+        "project": "firmware/huamiOS/packages/apps/sports",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 1,
+        "sha": "b157e00602f3b2d1933fb36cb648e0801c5e98bf",
+        "ref": "refs/changes/42/1065842/1",
+        "repo": "/home/hgw/pamir/packages/apps/sports",
+        "state": "already_applied",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [
+          "cherry-pick"
+        ],
+        "head_before": "4e4b5b9d1a28807bffd69f31bdcd69a682620883",
+        "head_after": null,
+        "message": "cherry-pick 结果为空(内容已在当前分支)，已 --skip",
+        "files": [
+          "include/presenter/SportPresenter.h",
+          "src/presenter/SportPresenter.cc"
+        ]
+      },
+      {
+        "number": 1065925,
+        "project": "firmware/huamiOS/ui/Sports",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 10,
+        "sha": "dfd496a84ea585167e349d65fb4b10e7be993795",
+        "ref": "refs/changes/25/1065925/10",
+        "repo": "/home/hgw/pamir/ui/Sports",
+        "state": "error",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [],
+        "head_before": null,
+        "head_after": null,
+        "message": "工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash\n?? prototype/resources/432x514/designer/Sports.gapp",
+        "files": [
+          "include/utils/SportAutoCalibTipContainer.h",
+          "include/utils/sport_container_manager.h",
+          "prototype/resources/390x450/designer/Sports.gapp",
+          "prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_hsp_bg.png",
+          "prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_hsp_front.png",
+          "prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_simulate.png",
+          "prototype/resources/432x514/images/common/sports/item/hyrox/hyrox_hsp_bg.png",
+          "prototype/resources/432x514/images/common/sports/item/hyrox/hyrox_hsp_front.png",
+          "prototype/resources/466x466/images/common/sports/item/hyrox/hyrox_hsp_bg.png",
+          "prototype/resources/466x466/images/common/sports/item/hyrox/hyrox_hsp_front.png",
+          "prototype/resources/480x480/designer/Sports.gapp",
+          "prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_hsp_bg.png",
+          "prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_hsp_front.png",
+          "prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_simulate.png",
+          "prototype/style/390x450-mdpi/SportReadyGoScreen.style",
+          "prototype/style/390x450-mdpi/hyroxSensorChooseScreen.style",
+          "prototype/style/480x480-mdpi/SportReadyGoScreen.style",
+          "prototype/style/480x480-mdpi/hyroxSensorChooseScreen.style",
+          "src/Training/sport_hyrox_race_strategy.cc",
+          "src/hyrox/hyrox_calibrate_screen.c",
+          "src/hyrox/hyrox_candrag_screen.c",
+          "src/hyrox/hyrox_first_connect_screen.c",
+          "src/hyrox/hyrox_simulate_choose_screen.cc",
+          "src/readygo/sport_ready_go_screen.c",
+          "src/sport_application.c",
+          "src/utils/SportAutoCalibTipContainer.c"
+        ]
+      },
+      {
+        "number": 1065994,
+        "project": "firmware/huamiOS/ui/phn",
+        "branch": "master",
+        "subject": "feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准",
+        "patchset": 1,
+        "sha": "c39a7913228a4dd89513226a1364d21bb16903a6",
+        "ref": "refs/changes/94/1065994/1",
+        "repo": "/home/hgw/pamir/ui/phn",
+        "state": "error",
+        "conflicted_files": [],
+        "auto_resolved": [],
+        "tried": [],
+        "head_before": null,
+        "head_after": null,
+        "message": "工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash\nM prototype/resources/432x514/designer/phn.gapp",
+        "files": [
+          "src/phnReayGo/PhnReadygoScreen.c"
+        ]
+      }
+    ],
+    "summary": [
+      "#1065222 feat | ABS-2951 > 实时charge适配hyrox运动支持后台自动校准 -> /home/hgw/pamir/framework/engine/healthEngine (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)",
+      "#1065599 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/services/sport (applied(自动解冲突))",
+      "#1065718 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/apps/sports (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)",
+      "#1065767 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/services/sport (applied(自动解冲突))",
+      "#1065785 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/translations (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)",
+      "#1065842 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/apps/sports (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)",
+      "#1065925 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/Sports (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)",
+      "#1065994 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/phn (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)"
+    ],
+    "message": "部分完成：5 条已落地，3 条需要处理。按 changes[] 里的 state/message 逐条处理，处理完重跑 download，已合入的会自动跳过",
+    "gapp_390_adaptation": {
+      "source_files": [
+        "prototype/resources/480x480/designer/Sports.gapp",
+        "prototype/style/480x480-mdpi/SportReadyGoScreen.style",
+        "prototype/style/480x480-mdpi/hyroxSensorChooseScreen.style"
+      ],
+      "items": [
+        {
+          "source_480": "prototype/resources/480x480/designer/Sports.gapp",
+          "target_390": "prototype/resources/390x450/designer/Sports.gapp",
+          "kind": "gapp",
+          "changed_390": true,
+          "local_390": false,
+          "status": "ok",
+          "rule": "已包含 390×450 适配"
+        },
+        {
+          "source_480": "prototype/style/480x480-mdpi/SportReadyGoScreen.style",
+          "target_390": "prototype/style/390x450-mdpi/SportReadyGoScreen.style",
+          "kind": "style",
+          "changed_390": true,
+          "local_390": false,
+          "status": "ok",
+          "rule": "已包含 390×450 适配"
+        },
+        {
+          "source_480": "prototype/style/480x480-mdpi/hyroxSensorChooseScreen.style",
+          "target_390": "prototype/style/390x450-mdpi/hyroxSensorChooseScreen.style",
+          "kind": "style",
+          "changed_390": true,
+          "local_390": false,
+          "status": "ok",
+          "rule": "已包含 390×450 适配"
+        }
+      ],
+      "checked": true,
+      "adapt_required": 0,
+      "target_resolution": "390×450",
+      "style_rule": "使用 390×450-mdpi 对应 style，不直接复用 480 style"
+    }
+  },
+  "raw_tail": "ead_before\": \"9c250cb5fdc368d60fa6da442b3fd25d299b9ff2\",\n      \"head_after\": \"fd31ca74e7e05a45a64111cd6286e7d6d4dae2b9\",\n      \"message\": \"冲突已自动解决（冲突块单侧为空，取另一侧）：。请复核这些文件\",\n      \"files\": [\n        \"include/hyrox_sim/sport_hybrid_training_service.h\",\n        \"src/hyrox_sim/sport_hybrid_training_service.c\"\n      ]\n    },\n    {\n      \"number\": 1065718,\n      \"project\": \"firmware/huamiOS/packages/apps/sports\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 1,\n      \"sha\": \"ff47bf5fc1760dd9695142a6ec2ded5caeead076\",\n      \"ref\": \"refs/changes/18/1065718/1\",\n      \"repo\": \"/home/hgw/pamir/packages/apps/sports\",\n      \"state\": \"already_applied\",\n      \"conflicted_files\": [],\n      \"auto_resolved\": [],\n      \"tried\": [\n        \"cherry-pick\"\n      ],\n      \"head_before\": \"4e4b5b9d1a28807bffd69f31bdcd69a682620883\",\n      \"head_after\": null,\n      \"message\": \"cherry-pick 结果为空(内容已在当前分支)，已 --skip\",\n      \"files\": [\n        \"include/manager/sport_save_hyrox_manager.h\",\n        \"src/manager/sport_save_hyrox_manager.c\"\n      ]\n    },\n    {\n      \"number\": 1065767,\n      \"project\": \"firmware/huamiOS/packages/services/sport\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 2,\n      \"sha\": \"d51004f79afabef48f8c339a35b393aa463e5862\",\n      \"ref\": \"refs/changes/67/1065767/2\",\n      \"repo\": \"/home/hgw/pamir/packages/services/sport\",\n      \"state\": \"applied_auto\",\n      \"conflicted_files\": [\n        \"src/hyrox_sim/sport_hybrid_training_service.c\"\n      ],\n      \"auto_resolved\": [\n        \"src/hyrox_sim/sport_hybrid_training_service.c\"\n      ],\n      \"tried\": [\n        \"cherry-pick\",\n        \"单侧为空自动取另一侧\",\n        \"cherry-pick -X theirs\"\n      ],\n      \"head_before\": \"fd31ca74e7e05a45a64111cd6286e7d6d4dae2b9\",\n      \"head_after\": \"8c7faed07d000bedccddc297c32f5c4eeb450cc6\",\n      \"message\": \"冲突按 change 侧整体解决（-X theirs）：src/hyrox_sim/sport_hybrid_training_service.c。本地侧的改动被让掉了，务必逐个 review\",\n      \"files\": [\n        \"include/hyrox_sim/sport_hybrid_training_service.h\",\n        \"src/hyrox_sim/sport_hybrid_training_service.c\"\n      ]\n    },\n    {\n      \"number\": 1065785,\n      \"project\": \"firmware/huamiOS/ui/translations\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 1,\n      \"sha\": \"dcd5b49b90f59619944deb3951308aa6913f338e\",\n      \"ref\": \"refs/changes/85/1065785/1\",\n      \"repo\": \"/home/hgw/pamir/ui/translations\",\n      \"state\": \"already_applied\",\n      \"conflicted_files\": [],\n      \"auto_resolved\": [],\n      \"tried\": [\n        \"cherry-pick\"\n      ],\n      \"head_before\": \"db29370782178b9a3519015de821978ebe8c1181\",\n      \"head_after\": null,\n      \"message\": \"cherry-pick 结果为空(内容已在当前分支)，已 --skip\",\n      \"files\": [\n        \"Sports/translations.csv\"\n      ]\n    },\n    {\n      \"number\": 1065842,\n      \"project\": \"firmware/huamiOS/packages/apps/sports\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 1,\n      \"sha\": \"b157e00602f3b2d1933fb36cb648e0801c5e98bf\",\n      \"ref\": \"refs/changes/42/1065842/1\",\n      \"repo\": \"/home/hgw/pamir/packages/apps/sports\",\n      \"state\": \"already_applied\",\n      \"conflicted_files\": [],\n      \"auto_resolved\": [],\n      \"tried\": [\n        \"cherry-pick\"\n      ],\n      \"head_before\": \"4e4b5b9d1a28807bffd69f31bdcd69a682620883\",\n      \"head_after\": null,\n      \"message\": \"cherry-pick 结果为空(内容已在当前分支)，已 --skip\",\n      \"files\": [\n        \"include/presenter/SportPresenter.h\",\n        \"src/presenter/SportPresenter.cc\"\n      ]\n    },\n    {\n      \"number\": 1065925,\n      \"project\": \"firmware/huamiOS/ui/Sports\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 10,\n      \"sha\": \"dfd496a84ea585167e349d65fb4b10e7be993795\",\n      \"ref\": \"refs/changes/25/1065925/10\",\n      \"repo\": \"/home/hgw/pamir/ui/Sports\",\n      \"state\": \"error\",\n      \"conflicted_files\": [],\n      \"auto_resolved\": [],\n      \"tried\": [],\n      \"head_before\": null,\n      \"head_after\": null,\n      \"message\": \"工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash\\n?? prototype/resources/432x514/designer/Sports.gapp\",\n      \"files\": [\n        \"include/utils/SportAutoCalibTipContainer.h\",\n        \"include/utils/sport_container_manager.h\",\n        \"prototype/resources/390x450/designer/Sports.gapp\",\n        \"prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_hsp_bg.png\",\n        \"prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_hsp_front.png\",\n        \"prototype/resources/390x450/images/common/sports/item/hyrox/hyrox_simulate.png\",\n        \"prototype/resources/432x514/images/common/sports/item/hyrox/hyrox_hsp_bg.png\",\n        \"prototype/resources/432x514/images/common/sports/item/hyrox/hyrox_hsp_front.png\",\n        \"prototype/resources/466x466/images/common/sports/item/hyrox/hyrox_hsp_bg.png\",\n        \"prototype/resources/466x466/images/common/sports/item/hyrox/hyrox_hsp_front.png\",\n        \"prototype/resources/480x480/designer/Sports.gapp\",\n        \"prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_hsp_bg.png\",\n        \"prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_hsp_front.png\",\n        \"prototype/resources/480x480/images/common/sports/item/hyrox/hyrox_simulate.png\",\n        \"prototype/style/390x450-mdpi/SportReadyGoScreen.style\",\n        \"prototype/style/390x450-mdpi/hyroxSensorChooseScreen.style\",\n        \"prototype/style/480x480-mdpi/SportReadyGoScreen.style\",\n        \"prototype/style/480x480-mdpi/hyroxSensorChooseScreen.style\",\n        \"src/Training/sport_hyrox_race_strategy.cc\",\n        \"src/hyrox/hyrox_calibrate_screen.c\",\n        \"src/hyrox/hyrox_candrag_screen.c\",\n        \"src/hyrox/hyrox_first_connect_screen.c\",\n        \"src/hyrox/hyrox_simulate_choose_screen.cc\",\n        \"src/readygo/sport_ready_go_screen.c\",\n        \"src/sport_application.c\",\n        \"src/utils/SportAutoCalibTipContainer.c\"\n      ]\n    },\n    {\n      \"number\": 1065994,\n      \"project\": \"firmware/huamiOS/ui/phn\",\n      \"branch\": \"master\",\n      \"subject\": \"feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准\",\n      \"patchset\": 1,\n      \"sha\": \"c39a7913228a4dd89513226a1364d21bb16903a6\",\n      \"ref\": \"refs/changes/94/1065994/1\",\n      \"repo\": \"/home/hgw/pamir/ui/phn\",\n      \"state\": \"error\",\n      \"conflicted_files\": [],\n      \"auto_resolved\": [],\n      \"tried\": [],\n      \"head_before\": null,\n      \"head_after\": null,\n      \"message\": \"工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash\\nM prototype/resources/432x514/designer/phn.gapp\",\n      \"files\": [\n        \"src/phnReayGo/PhnReadygoScreen.c\"\n      ]\n    }\n  ],\n  \"summary\": [\n    \"#1065222 feat | ABS-2951 > 实时charge适配hyrox运动支持后台自动校准 -> /home/hgw/pamir/framework/engine/healthEngine (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)\",\n    \"#1065599 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/services/sport (applied(自动解冲突))\",\n    \"#1065718 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/apps/sports (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)\",\n    \"#1065767 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/services/sport (applied(自动解冲突))\",\n    \"#1065785 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/translations (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)\",\n    \"#1065842 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/packages/apps/sports (already_applied: cherry-pick 结果为空(内容已在当前分支)，已 --skip)\",\n    \"#1065925 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/Sports (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)\",\n    \"#1065994 feat | ABS-1326 > 【hyrox模拟训练】 实现校准优化、实现自动校准 -> /home/hgw/pamir/ui/phn (error: 工作区有未提交改动 1 项，本条跳过（不影响其它 change）：先 commit 或 git stash)\"\n  ],\n  \"message\": \"部分完成：5 条已落地，3 条需要处理。按 changes[] 里的 state/message 逐条处理，处理完重跑 download，已合入的会自动跳过\"\n}"
+}

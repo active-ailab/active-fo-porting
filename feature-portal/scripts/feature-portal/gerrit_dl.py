@@ -824,6 +824,15 @@ def cmd_download(args, cfg, link):
             result_changes.append(entry)
             continue                                  # 继续下一条，不再整批停住
 
+        # 保留本次 change 的文件清单，供下载完成后的 480/390 gapp/style
+        # 适配检查使用；这里只读 commit 对象，不修改工作区。
+        try:
+            entry["files"] = [f.get("file") for f in changed_files(repo, c["revision"])
+                              if f.get("file")]
+        except Exception as exc:
+            entry["files"] = []
+            entry["files_error"] = str(exc)
+
         # 选 remote（每仓库只需确定一次）
         if repo not in repo_remote:
             rl = git(repo, "remote")

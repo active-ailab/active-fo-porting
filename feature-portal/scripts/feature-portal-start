@@ -14,6 +14,15 @@ if [[ -z "$PYTHON" ]]; then
   exit 127
 fi
 
+# Optional local configuration, kept out of source control.
+ENV_FILE="$HERE/codex.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 # Default behavior is intentionally one-step: start the service and open the
 # system browser. Extra arguments still pass through for advanced use.
 exec "$PYTHON" "$HERE/server.py" --open "$@"

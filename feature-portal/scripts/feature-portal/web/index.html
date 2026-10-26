@@ -27,32 +27,37 @@
 <nav class="steps" id="steps">
   <button class="step active" data-step="1">
     <span class="s-idx">1</span>
-    <span class="s-txt"><b>功能评估</b><i>文档 / 代码</i></span>
+    <span class="s-txt"><b>准备工作</b><i>代码基线 / 飞书 / Codex</i></span>
   </button>
   <div class="s-arrow"></div>
   <button class="step" data-step="2">
     <span class="s-idx">2</span>
-    <span class="s-txt"><b>代码移植</b><i>选择目录 / 拉 gerrit</i></span>
+    <span class="s-txt"><b>功能评估</b><i>文档 / 代码</i></span>
   </button>
   <div class="s-arrow"></div>
   <button class="step" data-step="3">
     <span class="s-idx">3</span>
-    <span class="s-txt"><b>编译烧录</b><i>active-build / v3dl</i></span>
+    <span class="s-txt"><b>功能移植</b><i>Gerrit / 冲突</i></span>
   </button>
   <div class="s-arrow"></div>
   <button class="step" data-step="4">
     <span class="s-idx">4</span>
-    <span class="s-txt"><b>自测验证</b><i>结果确认</i></span>
+    <span class="s-txt"><b>代码编译</b><i>active-build / v3dl</i></span>
+  </button>
+  <div class="s-arrow"></div>
+  <button class="step" data-step="5">
+    <span class="s-idx">5</span>
+    <span class="s-txt"><b>功能自测</b><i>结果确认</i></span>
   </button>
 </nav>
 
 <main id="main">
 
-  <!-- ================= 步骤 1：功能评估 ================= -->
+  <!-- ================= 步骤 1：前期工作 ================= -->
   <section class="pane active" id="pane1">
     <div class="pane-head">
-      <h2>功能评估</h2>
-      <p>文档与代码两项都勾选后，才能进入移植环节。</p>
+      <h2>准备工作</h2>
+      <p>先确定代码基线并完成飞书授权，再进入功能评估。</p>
     </div>
 
     <!-- 代码基线：先定目录 + manifest + 分支，再评估 -->
@@ -90,15 +95,6 @@
           <datalist id="baseBranchList"></datalist>
         </div>
 
-        <div class="field">
-          <label>并发</label>
-          <input type="number" id="baseJobs" value="8" min="1" max="32">
-        </div>
-
-        <div class="field span2">
-          <label>当前状态</label>
-          <div class="base-status" id="baseStatus">—</div>
-        </div>
       </div>
 
       <div class="base-actions">
@@ -108,6 +104,77 @@
       </div>
 
       <pre class="term" id="baseLog" hidden>等待执行…</pre>
+    </div>
+
+    <div class="card" id="feishuCard">
+      <div class="card-head">
+        <h3>准备工作：飞书授权</h3>
+        <span class="badge muted" id="feishuBadge">检查中…</span>
+      </div>
+      <p class="card-sub">后续 PFS、文档和表格读取统一使用这里的飞书授权；代码评估和移植继续使用上面的代码基线目录。</p>
+      <div class="base-grid">
+        <div class="field span2">
+          <label>飞书应用 ID（可选）</label>
+          <input type="text" id="feishuAppId" placeholder="cli_xxxxxxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>授权状态</label>
+          <div class="base-status" id="feishuStatus">检查中…</div>
+        </div>
+      </div>
+      <div class="base-actions">
+        <button class="btn primary" id="btnFeishuAuth">飞书授权</button>
+        <span class="danger-note" id="feishuNote">App Secret 只保存在本机服务端，不进入页面。</span>
+      </div>
+    </div>
+
+    <div class="card" id="codexModelCard">
+      <div class="card-head">
+        <h3>准备工作：Codex 模型</h3>
+        <span class="badge muted" id="codexModelBadge">检查中…</span>
+      </div>
+      <p class="card-sub">功能实现将使用这里选择的 Codex 模型；列表直接来自本机 Codex 的真实模型清单，不设置默认模型。</p>
+      <div class="base-actions">
+        <select id="implementationModel" class="model-select"></select>
+        <button class="btn ghost small" id="btnRefreshCodexModels">刷新模型</button>
+        <button class="btn primary small" id="btnSaveImplementationModel">保存模型</button>
+      </div>
+      <div class="path-note" id="codexModelNote">等待查询模型…</div>
+    </div>
+
+    <div class="card" id="codexCard" hidden>
+      <div class="card-head">
+        <h3>准备工作：Codex 大模型</h3>
+        <span class="badge muted" id="codexPrepBadge">检查中…</span>
+      </div>
+      <p class="card-sub">用于 PFS 需求分析和 Screen 事件评审。API Key 只保存到本机服务端，不写入页面状态。</p>
+      <div class="base-grid">
+        <div class="field span2">
+          <label>OpenAI API Key</label>
+          <input type="password" id="openaiApiKey" autocomplete="off" placeholder="sk-…（留空表示不修改）">
+        </div>
+        <div class="field">
+          <label>模型</label>
+          <div class="path-row">
+            <select id="openaiModel"></select>
+            <button class="btn ghost small" id="btnCodexModels" type="button">刷新模型</button>
+          </div>
+          <span class="tip" id="codexModelNote">输入 API Key 后点击“刷新模型”，只选择该 Key 实际可用的模型。</span>
+        </div>
+      </div>
+      <div class="base-actions">
+        <button class="btn primary" id="btnCodexConfig">保存 Codex 配置</button>
+        <span class="danger-note" id="codexPrepNote">不会在页面中显示完整 API Key。</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================= 步骤 2：功能评估 ================= -->
+  <section class="pane" id="pane2">
+    <div class="pane-head">
+      <h2>功能评估</h2>
+      <p>完成文档评估和代码评估后，才能进入功能移植。</p>
     </div>
 
     <div class="field">
@@ -124,14 +191,39 @@
             <span class="dot"></span>
             <h3>文档评估</h3>
           </div>
-          <label class="chk" title="完成文档评估后勾选">
-            <input type="checkbox" id="chkDoc">
-            <span class="chk-box"></span>
-          </label>
         </div>
         <p class="eval-desc">检查需求、交互、协议、测试用例四类文档是否齐备，并给出评分。</p>
-        <button class="btn ghost" id="btnDoc">开始文档评估</button>
         <div class="eval-body" id="bodyDoc"></div>
+        <div class="doc-check-options" aria-label="文档评估条件">
+          <label class="chk-option"><input type="checkbox" id="chkPfs"><span class="chk-box"></span><span>PFS 需求评估</span></label>
+          <label class="chk-option"><input type="checkbox" id="chkFrr"><span class="chk-box"></span><span>FRR 文件存在</span></label>
+        </div>
+        <div class="path-row" style="margin-top:12px">
+          <span class="path-note">两个条件都勾选后，文档评估才算通过。</span>
+        </div>
+        <div class="requirement-source" style="margin-top:12px">
+          <label for="pfsUrl">飞书需求连接</label>
+          <input class="requirement-url" type="url" id="pfsUrl" placeholder="粘贴飞书需求链接（http/https）">
+          <div class="requirement-row">
+            <input type="text" id="reqSection" placeholder="需求目录 / 标题（可选）">
+            <button class="btn ghost" id="btnPfs">解析需求并生成 PFS</button>
+          </div>
+        </div>
+        <div class="path-note" id="pfsNote">填写飞书链接和需求标题；将读取标题下方内容并生成 PFS。</div>
+        <div class="eval-body" id="pfsBody"></div>
+        <div class="implementation-card" id="implementationCard" hidden>
+          <div class="card-head">
+            <h3>功能实现</h3>
+            <span class="badge" id="implementationBadge">等待执行</span>
+          </div>
+          <p class="card-sub">使用本地 CodeGraph + 已选择的 Codex 模型，仅依据本次 PFS 修改相关目录。</p>
+          <div class="base-actions">
+            <button class="btn primary" id="btnImplement">按 PFS 实现功能</button>
+            <span class="danger-note">会直接修改当前代码基线，请先确认工作区没有不应覆盖的改动。</span>
+          </div>
+          <pre class="term" id="implementationLog" hidden></pre>
+          <div class="implementation-result" id="implementationResult"></div>
+        </div>
       </div>
 
       <!-- 代码评估 -->
@@ -158,30 +250,16 @@
     <div class="result-wide" id="codeResult"></div>
   </section>
 
-  <!-- ================= 步骤 2：移植 ================= -->
-  <section class="pane" id="pane2">
+  <!-- ================= 步骤 3：功能移植 ================= -->
+  <section class="pane" id="pane3">
     <div class="pane-head">
       <h2>代码移植</h2>
-      <p>先确认代码落地目录，再按 gerrit topic 一次性拉取全部 change。</p>
+    <p>沿用上面代码评估选定的代码目录，按 gerrit topic 一次性拉取全部 change。</p>
     </div>
 
     <div class="card">
       <div class="card-head">
-        <h3>1. 目标目录</h3>
-        <span class="badge" id="pathBadge">上次选择</span>
-      </div>
-      <div class="path-row">
-        <input type="text" id="targetPath" list="recentPaths" spellcheck="false"
-               placeholder="点「浏览…」选择，或直接粘贴完整路径后回车">
-        <datalist id="recentPaths"></datalist>
-        <button class="btn" id="btnBrowse">浏览…</button>
-      </div>
-      <div class="path-note" id="pathNote"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <h3>2. Gerrit Topic</h3>
+        <h3>1. Gerrit Topic</h3>
         <span class="badge" id="topicSource" hidden>沿用代码评估填写</span>
       </div>
       <div class="path-row">
@@ -222,8 +300,8 @@
     </div>
   </section>
 
-  <!-- ================= 步骤 3：编译烧录 ================= -->
-  <section class="pane" id="pane3">
+  <!-- ================= 步骤 4：代码编译 ================= -->
+  <section class="pane" id="pane4">
     <div class="pane-head">
       <h2>编译与烧录</h2>
       <p>选择项目后调用 active-build；编译通过后再决定是否刷机。</p>
@@ -294,8 +372,8 @@
     </div>
   </section>
 
-  <!-- ================= 步骤 4：自测 ================= -->
-  <section class="pane" id="pane4">
+  <!-- ================= 步骤 5：功能自测 ================= -->
+  <section class="pane" id="pane5">
     <div class="pane-head">
       <h2>自测验证</h2>
       <p id="selftestSub">刷机完成后自动进入，逐项确认功能是否正常。</p>

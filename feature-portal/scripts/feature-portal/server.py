@@ -31,6 +31,9 @@ import time
 import traceback
 import uuid
 import zipfile
+from html.parser import HTMLParser
+import urllib.error
+import urllib.request
 from concurrent import futures
 
 try:
@@ -168,6 +171,354 @@ def json_write(path, obj):
         return False
 
 
+# --------------------------------------------------------------------------
+# Codex / OpenAI Responses API（可选，不影响无 API Key 时的本地评估）
+# --------------------------------------------------------------------------
+CODEX_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+CODEX_FALLBACK_MODELS = [
+    "gpt-4.1-mini",
+    "gpt-4.1",
+    "gpt-4o-mini",
+]
+
+
+def codex_cli_path():
+    """查找本机 Codex CLI；网页服务启动时的 PATH 可能没有 VS Code 扩展目录。"""
+    candidates = [
+        shutil.which("codex"),
+        "/home/hgw/.vscode-server/extensions/openai.chatgpt-26.1007.21434-linux-x64/bin/linux-x86_64/codex",
+    ]
+    for path in candidates:
+        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return ""
+SCREEN_EVENT_RULES = """统一 Screen 事件评审规则（目标：不漏事件、不误触发）
+1. 按键：检查 confirm/背键/上下左右/长按/短按/重复触发；页面声明的按键必须有处理，返回、确认和取消路径不能互相覆盖。
+2. 触摸：检查点击、滑动方向、长按、抬起/取消、边界坐标和控件消费事件；不可把背景点击误判为控件点击。
+3. 旋钮：检查顺时针、逆时针、按下、长按（如硬件支持）和焦点切换；旋钮事件必须只作用于当前焦点/列表，不能穿透到后台页面。
+4. 生命周期：进入、退出、返回、重复进入、异常中断后事件状态必须清理；禁止重复注册监听导致一次操作多次响应。
+5. 适配：390×450 的触摸热区、文字、焦点和 style 必须独立核对，不能直接沿用 480 的坐标或 style。
+6. 评审输出：每个事件给出 PASS / FAIL / UNKNOWN，附文件、函数或控件证据；缺证据必须报 UNKNOWN，不得默认通过。"""
+
+
+class _DescriptionTableParser(HTMLParser):
+    """从 PFS 页面表格中提取 Description 列，不把其它列当需求。"""
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.rows = []
+        self.row = None
+        self.cell = None
+        self.tag = ""
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag == "tr":
+            self.row = []
+        elif tag in ("th", "td") and self.row is not None:
+            self.cell = []
+            self.tag = tag
+        elif tag == "br" and self.cell is not None:
+            self.cell.append("\n")
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in ("th", "td") and self.cell is not None and self.row is not None:
+            self.row.append(re.sub(r"[ \t]+", " ", "".join(self.cell)).strip())
+            self.cell = None
+        elif tag == "tr" and self.row is not None:
+            if self.row:
+                self.rows.append(self.row)
+            self.row = None
+
+
+def extract_pfs_description(content):
+    parser = _DescriptionTableParser()
+    try:
+        parser.feed(content or "")
+    except Exception:
+        pass
+    values = []
+    for row in parser.rows:
+        headers = [str(x).strip().lower() for x in row]
+        if "description" in headers:
+            i = headers.index("description")
+            if i < len(row) and row[i].strip():
+                values.append(row[i].strip())
+    if values:
+        return "\n\n".join(dict.fromkeys(values))
+    # 兼容导出的 Markdown/纯文本 PFS：只截取 Description 标题之后的内容。
+    m = re.search(r"(?im)^\s*description\s*[:：]?\s*$([\s\S]*)", content or "")
+    return m.group(1).strip() if m else (content or "").strip()
+
+
+def extract_requirement_section(content, section=""):
+    """读取飞书页面指定标题下的内容，直到下一个同级/更高标题。"""
+    section = (section or "").strip()
+    if not section:
+        return extract_pfs_description(content)
+    raw = content or ""
+    plain = re.sub(r"<br\s*/?>", "\n", raw, flags=re.I)
+    plain = re.sub(r"</(p|div|li|tr|h[1-6])>", "\n", plain, flags=re.I)
+    plain = re.sub(r"<[^>]+>", "", plain)
+    plain = re.sub(r"[ \t]+", " ", plain)
+    lines = [x.strip() for x in plain.splitlines() if x.strip()]
+    wanted = section.casefold()
+    start = next((i for i, line in enumerate(lines) if wanted in line.casefold()), -1)
+    if start < 0:
+        return ""
+    stop = len(lines)
+    for i in range(start + 1, len(lines)):
+        if re.match(r"^(?:第\s*\d+\s*[章节部分]|\d+(?:\.\d+)*[、.：:]|[一二三四五六七八九十]+[、.])", lines[i]):
+            stop = i
+            break
+    return "\n".join(lines[start + 1:stop]).strip()
+
+
+def make_numbered_pfs(text):
+    items = []
+    for line in re.split(r"\n+", text or ""):
+        line = re.sub(r"^\s*(?:[-*•]|\d+[、.])\s*", "", line).strip()
+        if line:
+            items.append(line)
+    return "\n".join("%d、%s" % (i, item) for i, item in enumerate(items, 1))
+
+
+def strip_document_comments(text):
+    """只保留文档正文，去掉 Markdown 注释块和常见评论 sidecar。"""
+    text = re.sub(r"<!--.*?-->", "", text or "", flags=re.S)
+    text = re.split(r"(?im)^\s*(?:comments?|评论区|评论内容)\s*[:：]?\s*$", text)[0]
+    return text.strip()
+
+
+def analyze_requirement_with_ai(requirement, source=""):
+    prompt = """你是 ZeppOS 功能需求分析专家。请只分析下面的需求正文，不能引用或臆测评论区内容。
+请判断本次需求具体修改了什么，并输出严格 JSON：
+{"summary":"一句话总结", "changes":["明确的修改项"], "scope":["涉及模块/页面/流程"], "acceptance":["可验证的验收条件"], "risks":["风险"]}
+要求：changes 必须是具体动作，不能写空泛描述；正文没有提到的内容不要补充。
+
+来源：""" + source + "\n需求正文：\n" + requirement[:120000]
+    r = call_codex(prompt)
+    if not r.get("ok"):
+        return {"ok": False, "error": r.get("error") or "AI 需求分析失败"}
+    parsed = parse_codex_json(r.get("text")) or {}
+    return {"ok": True, "analysis": parsed, "model": r.get("model")}
+
+
+def _lark_cli():
+    return which("lark-cli") or "/home/hgw/.local/node_modules/.bin/lark-cli"
+
+
+def _lark_json(args):
+    cli = _lark_cli()
+    if not cli or not os.path.isfile(cli):
+        raise RuntimeError("未找到 lark-cli，请先完成飞书授权")
+    p = subprocess.run([cli] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, encoding="utf-8", errors="replace", timeout=60)
+    try:
+        data = json.loads(p.stdout)
+    except Exception:
+        raise RuntimeError((p.stderr or p.stdout or "lark-cli 返回无效数据")[-1000:])
+    if not data.get("ok"):
+        raise RuntimeError(json.dumps(data.get("error") or data, ensure_ascii=False))
+    return data.get("data") or {}
+
+
+def fetch_feishu_requirement(url, section=""):
+    """通过 lark-cli 读取 Wiki 真实对象；支持 Wiki -> docx/doc/sheet。"""
+    m = re.search(r"/wiki/([^/?#]+)", url)
+    if not m:
+        raise RuntimeError("当前只支持飞书 Wiki 链接")
+    node = _lark_json(["wiki", "spaces", "get_node", "--params", json.dumps({"token": m.group(1)})]).get("node") or {}
+    obj = node.get("obj_token")
+    if node.get("obj_type") in ("docx", "doc") and obj:
+        data = _lark_json(["docs", "+fetch", "--doc", obj,
+                           "--doc-format", "markdown", "--scope", "full"])
+        content = data.get("content") or data.get("markdown") or data.get("text") or ""
+        if not content:
+            content = json.dumps(data, ensure_ascii=False)
+        requirement = ""
+        if section:
+            # Markdown 文档标题可能带编号、空格或全角标点，按标题层级截取子树。
+            norm = re.sub(r"[\s#：:、.]+", "", section).casefold()
+            lines = [x.rstrip() for x in content.splitlines() if x.strip()]
+            hit = next((i for i, line in enumerate(lines)
+                        if norm in re.sub(r"[\s#：:、.]+", "", line).casefold()), -1)
+            if hit >= 0:
+                mh = re.match(r"^(#{1,6})\s+", lines[hit])
+                level = len(mh.group(1)) if mh else 6
+                end = len(lines)
+                for j in range(hit + 1, len(lines)):
+                    h = re.match(r"^(#{1,6})\s+", lines[j])
+                    if h and len(h.group(1)) <= level:
+                        end = j
+                        break
+                requirement = "\n".join(lines[hit + 1:end]).strip()
+        if not requirement:
+            requirement = extract_requirement_section(content, section)
+        if not requirement:
+            raise RuntimeError("没有找到指定标题下的需求内容：%s" % section if section else "飞书文档没有可读取内容")
+        return strip_document_comments(requirement), node.get("title") or "飞书需求"
+    if node.get("obj_type") != "sheet" or not obj:
+        raise RuntimeError("该飞书链接不是可读取的 docx/doc/sheet 文档")
+    info = _lark_json(["sheets", "+workbook-info", "--token", obj])
+    sh = (info.get("sheets") or [])[0]
+    if not sh:
+        raise RuntimeError("飞书表格没有可读取的工作表")
+    cols = int(sh.get("column_count") or 26)
+    rows = int(sh.get("row_count") or 200)
+    def col_name(n):
+        out = ""
+        while n:
+            n, r = divmod(n - 1, 26)
+            out = chr(65 + r) + out
+        return out
+    data = _lark_json(["sheets", "+cells-get", "--spreadsheet-token", obj,
+                       "--sheet-id", str(sh.get("sheet_id")),
+                       "--range", "A1:%s%d" % (col_name(cols), rows),
+                       "--format", "json", "--max-chars", "2000000"])
+    matrix = [[str(c.get("value") or "") for c in row]
+              for row in ((data.get("ranges") or [{}])[0].get("cells") or [])]
+    if not matrix:
+        raise RuntimeError("飞书表格没有内容")
+    header = matrix[0]
+    desc_col = next((i for i, v in enumerate(header) if re.search(r"^\s*description\b", v, re.I)), None)
+    if desc_col is None:
+        desc_col = next((i for i, v in enumerate(header) if "description" in v.lower()), None)
+    if desc_col is None:
+        raise RuntimeError("飞书模板中没有找到 Description 列")
+    values = [(i + 1, row[desc_col].strip() if desc_col < len(row) else "", row)
+              for i, row in enumerate(matrix[1:])]
+    wanted = (section or "").strip().casefold()
+    if wanted:
+        hit = next((i for i, value, row in values if wanted in " ".join(row).casefold()), None)
+        if hit is None:
+            candidates = [v for _, v, _ in values if v and len(v) < 120]
+            # 飞书模板常把“需求 1：xxx”作为外部目录标题，表格内部只保留其下方的 Description 行。
+            # 这种情况下以需求编号 1 作为起点，读取 Description 列的全部需求项。
+            if re.match(r"^需求\s*1\s*[：:、.]", section):
+                return "\n".join(v for _, v, _ in values if v), node.get("title") or "飞书需求"
+            raise RuntimeError("没有找到指定标题：%s；可选标题：%s" % (section, "、".join(candidates[:20])))
+        start = next(i for i, value, row in values if i == hit)
+        picked = []
+        for i, value, row in values:
+            if i < start or not value:
+                continue
+            if i > start and re.match(r"^需求\s*\d+\s*[：:、.]", value) and picked:
+                break
+            picked.append(value)
+        return "\n".join(picked), node.get("title") or "飞书需求"
+    return "\n".join(v for _, v, _ in values if v), node.get("title") or "飞书需求"
+
+
+def review_import_screens(workspace):
+    """下载 topic 后扫描 application 文件，importScreen 即视为新增 Screen 线索。"""
+    found = []
+    root = normalize_workspace_path(workspace)
+    if not os.path.isdir(root):
+        return {"checked": False, "screens": [], "message": "工作区不存在"}
+    for base, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS and not d.startswith(".")]
+        if os.path.basename(base).lower() != "application":
+            continue
+        for fn in files:
+            path = os.path.join(base, fn)
+            try:
+                text = io.open(path, "r", encoding="utf-8", errors="replace").read()
+            except Exception:
+                continue
+            for no, line in enumerate(text.splitlines(), 1):
+                if "importScreen" not in line:
+                    continue
+                names = re.findall(r"importScreen\s*\(\s*[\"']([^\"']+)", line)
+                found.append({"file": os.path.relpath(path, root).replace("\\", "/"),
+                              "line": no, "imports": names or [line.strip()]})
+    return {"checked": True, "new_screen": bool(found), "screens": found,
+            "message": "发现 application 中的 importScreen，需按新增 Screen 评审事件" if found
+                       else "未发现 application/importScreen"}
+
+
+def codex_config():
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    cli = codex_cli_path()
+    return {"configured": bool(key) or bool(cli), "provider": "codex-cli" if cli else "openai-api",
+            "cli": bool(cli), "model": CODEX_MODEL,
+            "endpoint": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")}
+
+
+def call_codex(prompt, max_output_tokens=3000):
+    # 优先使用本机已登录的 Codex CLI。它走 ChatGPT/Codex 登录态，不消耗 OPENAI_API_KEY 的 API 额度。
+    codex_bin = codex_cli_path()
+    if codex_bin:
+        try:
+            proc = subprocess.run(
+                [codex_bin, "exec", "--ephemeral", "--skip-git-repo-check",
+                 "--sandbox", "read-only", "--json", prompt],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, encoding="utf-8", errors="replace", timeout=180)
+            chunks = []
+            for line in (proc.stdout or "").splitlines():
+                try:
+                    event = json.loads(line)
+                except Exception:
+                    continue
+                item = event.get("item") or {}
+                if item.get("type") == "agent_message" and item.get("text"):
+                    chunks.append(item["text"])
+            if chunks:
+                return {"ok": True, "provider": "codex-cli", "model": "codex-cli",
+                        "text": "\n".join(chunks)}
+            detail = (proc.stderr or proc.stdout or "Codex CLI 没有返回结果")[-1200:]
+            return {"ok": False, "provider": "codex-cli",
+                    "error": "Codex CLI 调用失败：%s" % detail}
+        except Exception as exc:
+            return {"ok": False, "provider": "codex-cli",
+                    "error": "Codex CLI 调用失败：%s" % exc}
+
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not key:
+        return {"ok": False, "error": "未配置 OPENAI_API_KEY。请在启动 Feature Portal 的终端中设置 API Key。",
+                "configured": False, "model": CODEX_MODEL}
+    body = json.dumps({
+        "model": CODEX_MODEL,
+        "input": [{"role": "user", "content": [{"type": "input_text", "text": prompt}]}],
+        "max_output_tokens": max_output_tokens,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/responses",
+        data=body, headers={"Authorization": "Bearer " + key,
+                            "Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            data = json.loads(resp.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:1200]
+        return {"ok": False, "error": "Codex API HTTP %s: %s" % (exc.code, detail),
+                "configured": True, "model": CODEX_MODEL}
+    except Exception as exc:
+        return {"ok": False, "error": "Codex API 调用失败：%s" % exc,
+                "configured": True, "model": CODEX_MODEL}
+    chunks = []
+    for item in data.get("output", []) or []:
+        for part in item.get("content", []) or []:
+            if part.get("type") in ("output_text", "text") and part.get("text"):
+                chunks.append(part["text"])
+    return {"ok": True, "model": CODEX_MODEL, "text": "\n".join(chunks), "raw": data}
+
+
+def parse_codex_json(text):
+    text = (text or "").strip()
+    for candidate in (text, re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S)):
+        try:
+            return json.loads(candidate)
+        except Exception:
+            continue
+    return {"raw": text}
+
+
 def human_bytes(n):
     if n is None:
         return "-"
@@ -207,8 +558,10 @@ DEFAULT_STATE = {
     "feature_name": "",
     "eval": {
         "doc": {"done": False, "at": "", "score": 0},
-        "code": {"done": False, "at": "", "score": 0}
+        "code": {"done": False, "at": "", "score": 0},
+        "pfs": False, "frr": False
     },
+    "feishu": {"app_id": "", "authorized": False},
     "port": {
         "path": WORKSPACE,
         "topic": "",
@@ -262,7 +615,7 @@ def save_state(st):
 
 def patch_state(patch):
     """只接受已知的顶层字段，避免页面乱塞的键被永久写进 state.json。"""
-    allowed = {"workspace", "feature_name", "eval", "port", "build", "flash",
+    allowed = {"workspace", "feature_name", "eval", "feishu", "port", "build", "flash",
                "selftest", "recent_paths", "baseline"}
     with _state_lock:
         st = load_state()
@@ -1243,6 +1596,55 @@ def analyze_conflicts(changes):
         entry["advice"] = _conflict_advice(entry)
         reports.append(entry)
     return reports
+
+
+def analyze_gapp_390_adaptation(changes, workspace):
+    """下载完成后检查 480 gapp/style 是否有对应的 390 适配改动。
+
+    只检查本次 topic 返回的文件清单；不把工作区里历史文件误算成这次修改。
+    390 的目标规范固定为 390x450，style 与 gapp 都必须有对应改动。
+    """
+    files = []
+    for change in changes or []:
+        for item in (change.get("files") or []):
+            if isinstance(item, dict):
+                item = item.get("rel") or item.get("path") or ""
+            if item:
+                files.append(str(item).replace("\\", "/").lstrip("./"))
+        for item in (change.get("conflicted_files") or []):
+            if item:
+                files.append(str(item).replace("\\", "/").lstrip("./"))
+    files = sorted(set(files))
+    low = [(p, p.lower()) for p in files]
+    source = [p for p, x in low if ("480" in x or "480x480" in x)
+              and (x.endswith(".gapp") or x.endswith(".style"))]
+    changed = set(files)
+
+    def counterpart(path):
+        p = re.sub(r"480x480", "390x450", path, flags=re.I)
+        p = re.sub(r"480", "390", p, flags=re.I)
+        return p
+
+    items = []
+    for p in source:
+        target = counterpart(p)
+        kind = "gapp" if p.lower().endswith(".gapp") else "style"
+        exists_in_topic = target in changed
+        local_exists = bool(workspace and os.path.isfile(os.path.join(workspace, target)))
+        items.append({
+            "source_480": p, "target_390": target, "kind": kind,
+            "changed_390": exists_in_topic, "local_390": local_exists,
+            "status": "ok" if exists_in_topic else "adapt_required",
+            "rule": "390×450 + 390 style" if not exists_in_topic else "已包含 390×450 适配",
+        })
+    return {
+        "source_files": source,
+        "items": items,
+        "checked": bool(source),
+        "adapt_required": sum(1 for x in items if x["status"] == "adapt_required"),
+        "target_resolution": "390×450",
+        "style_rule": "使用 390×450-mdpi 对应 style，不直接复用 480 style",
+    }
 
 
 def _grep_symbols(repo, symbols, limit=6):
@@ -2812,8 +3214,9 @@ def _parse_manifest_raw(path):
             "sample": names[:8]}
 
 
-def repo_baseline():
-    root = _repo_root_dir()
+def repo_baseline(workspace=None):
+    workspace_root = normalize_workspace_path(workspace or WORKSPACE)
+    root = os.path.join(workspace_root, ".repo")
     mdir = os.path.join(root, "manifests")
     current = ""
     mtxt = _read_text(os.path.join(root, "manifest.xml"), 400000) or ""
@@ -2863,11 +3266,11 @@ def repo_baseline():
         pass
 
     script = os.path.join(PORTAL_DIR, "repo_force_checkout.sh")
-    active_build = json_read(os.path.join(WORKSPACE, "build",
+    active_build = json_read(os.path.join(workspace_root, "build",
                                           ".active-build-state.json"), {}) or {}
     return {
         "ok": True,
-        "workspace": WORKSPACE,
+        "workspace": workspace_root,
         "has_repo": os.path.isdir(root),
         "checkout_script": script,
         "checkout_script_ok": os.path.isfile(script),
@@ -2880,8 +3283,8 @@ def repo_baseline():
     }
 
 
-def _repo_root_dir():
-    return os.path.join(WORKSPACE, ".repo")
+def _repo_root_dir(workspace=None):
+    return os.path.join(normalize_workspace_path(workspace or WORKSPACE), ".repo")
 
 
 @route("/api/workspace/switch", ("POST",))
@@ -2915,12 +3318,23 @@ def api_workspace_switch(q, body):
     return out
 
 
-@route("/api/repo/baseline")
+@route("/api/repo/baseline", ("GET", "POST"))
 def api_repo_baseline(q, body):
     try:
-        return repo_baseline()
+        return repo_baseline(selected_workspace(body))
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
+
+def selected_workspace(body=None):
+    """统一使用代码评估阶段选定的代码目录。"""
+    b = body or {}
+    st = load_state() or {}
+    baseline = st.get("baseline") or {}
+    port = st.get("port") or {}
+    raw = ((b.get("path") or "").strip() or baseline.get("path") or
+           port.get("path") or st.get("workspace") or WORKSPACE)
+    return normalize_workspace_path(raw)
 
 
 @route("/api/repo/checkout", ("POST",))
@@ -3007,16 +3421,435 @@ def api_eval_doc(q, body):
     return res
 
 
+@route("/api/codex/status")
+def api_codex_status(q, body):
+    return {"ok": True, **codex_config()}
+
+
+@route("/api/codex/cli-models")
+def api_codex_cli_models(q, body):
+    codex_state = load_state().get("codex") or {}
+    current = str(codex_state.get("implementation_model") or "").strip()
+    used = codex_state.get("models_used") or []
+    cache_path = os.path.expanduser(os.environ.get("CODEX_MODELS_CACHE", "~/.codex/models_cache.json"))
+    models = []
+    cache_time = ""
+    try:
+        with io.open(cache_path, "r", encoding="utf-8") as fh:
+            cache = json.load(fh)
+        cache_time = str(cache.get("fetched_at") or "")
+        for item in cache.get("models") or []:
+            slug = str(item.get("slug") or "").strip()
+            if slug and str(item.get("visibility") or "list") == "list":
+                models.append(slug)
+    except Exception as exc:
+        return {"ok": False, "models": [], "selected": current,
+                "message": "无法读取本机 Codex 模型清单：%s" % exc}
+    models = list(dict.fromkeys(models + [str(x).strip() for x in used if str(x).strip()]))
+    if current and current not in models:
+        current = ""
+    return {"ok": True, "models": models, "selected": current,
+            "fetched_at": cache_time,
+            "message": "已读取本机 Codex 模型清单；不会使用默认模型，请先选择并保存。"}
+
+
+@route("/api/codex/implementation-model", ("POST",))
+def api_codex_implementation_model(q, body):
+    model = str((body or {}).get("model") or "").strip()
+    if not model or not re.match(r"^[A-Za-z0-9_.:-]+$", model):
+        return {"ok": False, "error": "模型名称无效"}
+    if model not in (api_codex_cli_models(q, body).get("models") or []):
+        return {"ok": False, "error": "该模型不在本机 Codex 可用模型清单中，请先刷新模型列表"}
+    st = load_state()
+    st.setdefault("codex", {})["implementation_model"] = model
+    save_state(st)
+    return {"ok": True, "model": model}
+
+
+@route("/api/codex/models", ("POST",))
+def api_codex_models(q, body):
+    """返回当前 API Key 能访问的模型；无 Key 或查询失败时返回可选候选。"""
+    b = body or {}
+    key = str(b.get("api_key") or os.environ.get("OPENAI_API_KEY", "")).strip()
+    fallback = list(dict.fromkeys([CODEX_MODEL] + CODEX_FALLBACK_MODELS))
+    if not key:
+        return {"ok": True, "configured": False, "models": fallback,
+                "message": "请输入 API Key 后刷新，可查询该 Key 实际可用模型。"}
+    req = urllib.request.Request(
+        os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/models",
+        headers={"Authorization": "Bearer " + key}, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8", "replace"))
+        ids = [str(x.get("id")) for x in (data.get("data") or [])
+               if x.get("id") and ("codex" in str(x.get("id")).lower()
+                                    or str(x.get("id")).startswith(("gpt-", "o")))]
+        models = sorted(set(ids), key=lambda x: (0 if "codex" in x else 1, x))
+        return {"ok": True, "configured": True, "models": models or fallback,
+                "message": "已从 OpenAI 查询当前 API Key 可访问模型。" if models else "接口未返回匹配模型，显示候选模型。"}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:300]
+        return {"ok": True, "configured": True, "models": fallback,
+                "message": "模型查询失败（HTTP %s），显示候选模型：%s" % (exc.code, detail)}
+    except Exception as exc:
+        return {"ok": True, "configured": True, "models": fallback,
+                "message": "模型查询失败，显示候选模型：%s" % exc}
+
+
+@route("/api/codex/config", ("POST",))
+def api_codex_config(q, body):
+    global CODEX_MODEL
+    b = body or {}
+    key = str(b.get("api_key") or "").strip()
+    model = str(b.get("model") or CODEX_MODEL).strip()
+    if key and len(key) < 20:
+        return {"ok": False, "error": "API Key 格式看起来不完整"}
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+    if model:
+        os.environ["OPENAI_MODEL"] = model
+        CODEX_MODEL = model
+    env_path = os.path.join(PORTAL_DIR, "codex.env")
+    try:
+        if key or model:
+            with io.open(env_path, "w", encoding="utf-8") as fh:
+                if key:
+                    fh.write("OPENAI_API_KEY=" + key.replace("\\n", "") + "\n")
+                fh.write("OPENAI_MODEL=" + model.replace("\n", "") + "\n")
+            os.chmod(env_path, 0o600)
+    except Exception as exc:
+        return {"ok": False, "error": "保存 Codex 配置失败：%s" % exc}
+    return {"ok": True, **codex_config()}
+
+
+def lark_cli_path():
+    for p in (which("lark-cli"), "/home/hgw/.local/node_modules/.bin/lark-cli"):
+        if p and os.path.isfile(p) and os.access(p, os.X_OK):
+            return p
+    return ""
+
+
+@route("/api/feishu/status")
+def api_feishu_status(q, body):
+    st = load_state().get("feishu") or {}
+    cli = lark_cli_path()
+    return {"ok": True, "cli": bool(cli), "cli_path": cli,
+            "app_id": st.get("app_id") or "", "authorized": bool(st.get("authorized")),
+            "message": ("已找到 lark-cli，请完成飞书授权" if cli else "未找到 lark-cli")}
+
+
+@route("/api/eval/pfs", ("POST",))
+def api_eval_pfs(q, body):
+    b = body or {}
+    content = str(b.get("content") or "")
+    name = str(b.get("name") or "需求.pfs")
+    requirement = extract_pfs_description(content)
+    if not requirement.strip():
+        return {"ok": False, "error": "PFS 文件内容为空"}
+    if len(requirement) > 120000:
+        requirement = requirement[:120000] + "\n[Description 内容超过 120KB，已截断]"
+    prompt = """你是 ZeppOS/智能手表功能需求评审专家。输入内容只来自 PFS 的 Description 列，请把它作为本次修改需求和后续代码评审依据。
+
+不要解析或推断 Screen，不评审按键、触摸、旋钮事件；Screen 和事件只在下载 topic 代码后，根据 application 文件中的 importScreen 再评审。
+
+输出严格 JSON，字段为：
+{"requirements":[], "acceptance_criteria":[], "risks":[], "summary":""}
+
+PFS 文件名：""" + name + "\nDescription 列内容：\n" + requirement
+    r = call_codex(prompt)
+    if not r.get("ok"):
+        return r
+    analysis = parse_codex_json(r.get("text"))
+    return {"ok": True, "model": r.get("model"), "analysis": analysis,
+            "rules": SCREEN_EVENT_RULES, "source": name}
+
+
+@route("/api/eval/pfs-link", ("POST",))
+def api_eval_pfs_link(q, body):
+    b = body or {}
+    url = str(b.get("url") or "").strip()
+    section = str(b.get("section") or "").strip()
+    if not re.match(r"^https?://", url, re.I):
+        return {"ok": False, "error": "飞书需求链接必须是 http/https URL"}
+    try:
+        if "/wiki/" in url:
+            requirement, source_title = fetch_feishu_requirement(url, section)
+        else:
+            req = urllib.request.Request(url, headers={"User-Agent": "feature-portal/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                content = resp.read(120000).decode("utf-8", "replace")
+            requirement = strip_document_comments(extract_requirement_section(content, section))
+            source_title = section or "Description"
+    except Exception as exc:
+        return {"ok": False, "error": "读取飞书需求失败：%s" % exc}
+    if not requirement.strip():
+        return {"ok": False, "error": "没有找到指定标题下的需求内容：%s" % section if section else "没有找到 Description 列内容"}
+    pfs = make_numbered_pfs(requirement)
+    if not pfs:
+        return {"ok": False, "error": "指定区域没有可生成的需求条目"}
+    skill_dir = os.path.join(DATA_DIR, "pfs-skills")
+    os.makedirs(skill_dir, exist_ok=True)
+    slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", section or "requirement")[:60] or "requirement"
+    skill_path = os.path.join(skill_dir, slug + ".md")
+    ai = analyze_requirement_with_ai(requirement, source_title)
+    if not ai.get("ok"):
+        return {"ok": False, "error": ai.get("error") or "AI 需求分析失败"}
+    analysis = ai.get("analysis") or {}
+    ai_items = analysis.get("changes") or []
+    if ai_items:
+        pfs = make_numbered_pfs("\n".join(str(x) for x in ai_items))
+    md = "# PFS 需求\n\n来源：%s\n模板：%s\n需求目录/标题：%s\n\n%s\n" % (
+        url, source_title, section or "正文", pfs)
+    json_write(skill_path, md)
+    st = load_state()
+    st["pfs"] = {"content": pfs, "path": skill_path, "items": [
+        {"id": "pfs-%d" % i, "label": line, "hint": "按本条 PFS 需求执行并确认"
+         } for i, line in enumerate(pfs.splitlines(), 1) if line.strip()]}
+    st["selftest"] = {"items": [], "done": False, "at": ""}
+    st.setdefault("eval", {})["pfs"] = True
+    save_state(st)
+    return {"ok": True, "url": url, "skill_path": skill_path,
+            "source": section or source_title or "正文", "pfs": pfs,
+            "analysis": analysis, "model": ai.get("model")}
+
+
+@route("/api/pfs/save", ("POST",))
+def api_pfs_save(q, body):
+    content = str((body or {}).get("content") or "").strip()
+    if not content:
+        return {"ok": False, "error": "PFS 内容不能为空"}
+    normalized = make_numbered_pfs(content)
+    if not normalized:
+        return {"ok": False, "error": "没有可保存的 PFS 条目"}
+    st = load_state()
+    old = st.get("pfs") or {}
+    path = old.get("path") or os.path.join(DATA_DIR, "pfs-skills", "pfs-1.md")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with io.open(path, "w", encoding="utf-8") as fh:
+        fh.write("# PFS 需求\n\n## 需求正文\n" + normalized + "\n")
+    items = [{"id": "pfs-%d" % i, "label": line,
+              "hint": "按本条 PFS 需求执行并确认"}
+             for i, line in enumerate(normalized.splitlines(), 1) if line.strip()]
+    st["pfs"] = {"content": normalized, "items": items, "path": path}
+    st["selftest"] = {"items": [], "done": False, "at": ""}
+    save_state(st)
+    return {"ok": True, "path": path, "content": normalized, "items": items}
+
+
+IMPLEMENTATION_RULES = """功能实现规范（仅按本次 PFS 实现，不得发散）
+1. 先使用本地 codegraph summary/module/path/file/impact 查询现有模块、入口、调用链和归属，再决定修改位置；优先复用已有能力，不新建平行框架。
+2. 只实现 PFS 明确提出的需求；不顺手重构、不改无关模块、不改变已有公共接口行为。
+3. 若需要新增 Screen，必须在正确的 application 文件中 importScreen，并同步检查 gapp 注册/配置；根据需求决定是否新增 style。
+4. 方屏/圆屏、390×450 目标分辨率、按键、触摸右滑、旋钮事件必须遵循仓库已有规范；不能直接复制 480 坐标或 style。
+5. 处理进入、退出、返回、重复进入、异常中断后的界面恢复和事件监听清理，禁止重复注册造成重复响应。
+6. 修改完成后只运行与本次改动相关的静态检查或轻量验证；绝不执行固件编译、烧录或完整构建。输出修改目录、关键文件、测试重点和未解决风险。"""
+IMPLEMENTATION_RULES_FILE = os.path.join(PORTAL_DIR, "implementation-skills",
+                                         "feature-implementation-rules.txt")
+IMPLEMENTATION_MODEL = ""
+
+
+def selected_codex_model():
+    return str((load_state().get("codex") or {}).get("implementation_model") or "").strip()
+
+
+def implementation_snapshot(root, limit=30000):
+    """记录源码文件的 size/mtime，兼容未纳入 Git 的准备工作目录。"""
+    exts = (".c", ".cc", ".cpp", ".h", ".hpp", ".cxx", ".mk", ".in",
+            ".json", ".xml", ".js", ".lua", ".py", ".yaml", ".yml", ".md")
+    skip = {".git", ".codegraph", ".codex", ".cache", "build", "out", "dist"}
+    result = {}
+    for base, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in skip and not d.startswith(".")]
+        for fn in files:
+            if not fn.lower().endswith(exts):
+                continue
+            path = os.path.join(base, fn)
+            try:
+                st = os.stat(path)
+                result[os.path.relpath(path, root).replace("\\", "/")] = [st.st_size, st.st_mtime_ns]
+            except OSError:
+                continue
+            if len(result) >= limit:
+                return result
+    return result
+
+
+def implementation_rules():
+    try:
+        with io.open(IMPLEMENTATION_RULES_FILE, "r", encoding="utf-8") as fh:
+            custom = fh.read().strip()
+        return IMPLEMENTATION_RULES + "\n\n用户维护的功能实现规范：\n" + custom
+    except Exception:
+        return IMPLEMENTATION_RULES
+
+
+@route("/api/implementation/start", ("POST",))
+def api_implementation_start(q, body):
+    b = body or {}
+    baseline_path = str((load_state().get("baseline") or {}).get("path") or "").strip()
+    requested_path = str(b.get("path") or baseline_path).strip()
+    if not requested_path:
+        return {"ok": False, "error": "请先在准备工作中选择代码基线目录"}
+    workspace = normalize_workspace_path(requested_path)
+    if not os.path.isdir(workspace):
+        return {"ok": False, "error": "代码工作区不存在：%s" % workspace}
+    pfs = str((load_state().get("pfs") or {}).get("content") or "").strip()
+    if not pfs:
+        return {"ok": False, "error": "请先生成 PFS 需求"}
+    codex = codex_cli_path()
+    if not codex:
+        return {"ok": False, "error": "未找到本机 Codex CLI"}
+    graph = ""
+    cg = which("codegraph")
+    if cg:
+        try:
+            gp = subprocess.run([cg, "explore", "给出当前 workspace 的模块、application 入口、Screen、gapp/style 归属和相关调用链"],
+                                cwd=workspace, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, errors="replace", timeout=90)
+            graph = (gp.stdout or "")[-30000:]
+        except Exception as exc:
+            graph = "CodeGraph 查询失败：%s" % exc
+    else:
+        graph = "未找到 codegraph 命令，需由 Codex 在本地继续检查。"
+    before = subprocess.run(["git", "-C", workspace, "status", "--porcelain"],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, errors="replace").stdout
+    before_snapshot = implementation_snapshot(workspace)
+    skill_dir = os.path.join(DATA_DIR, "implementation-skills")
+    os.makedirs(skill_dir, exist_ok=True)
+    skill_path = os.path.join(skill_dir, "feature-implementation-rules.md")
+    with io.open(skill_path, "w", encoding="utf-8") as fh:
+        fh.write("# feature-implementation-rules\n\n")
+        fh.write("## 使用范围\n仅用于实现当前 PFS，不得扩展需求范围。\n\n")
+        fh.write("## 实现规范\n%s\n\n" % implementation_rules())
+        fh.write("## 当前 PFS\n%s\n" % pfs)
+    implementation_model = selected_codex_model()
+    if not implementation_model:
+        return {"ok": False, "error": "请先在前期工作中选择并保存 Codex 模型"}
+    available_models = api_codex_cli_models(q, body).get("models") or []
+    if implementation_model not in available_models:
+        return {"ok": False, "error": "已保存的 Codex 模型当前不可用，请刷新模型列表后重新选择"}
+    prompt = """请使用模型 %s，在当前代码工作区直接实现下面 PFS 需求。
+先运行本地 codegraph 查询代码结构，再阅读真实源码。实现范围必须严格受 PFS 限制。
+不要只给建议，必须实际修改文件。完成后只执行静态检查或轻量验证，禁止执行固件编译、烧录和完整构建。
+只能修改与本次 PFS 直接相关的候选目录和文件；禁止扫描后批量改动整个 workspace，禁止修改无关目录、第三方目录、生成目录和历史文件。
+最后输出严格 JSON：{"summary":"", "changed_dirs":[], "changed_files":[], "tests":[], "risks":[], "skill":"feature-implementation-rules"}
+
+CodeGraph 初步结果（仅作导航，必须打开真实源码核对）：
+""" % implementation_model + graph + "\n\n规范：\n""" + implementation_rules() + "\n\nPFS：\n" + pfs[:120000]
+    # 当前 Codex CLI 版本中 --approve-for-me 不能与 --sandbox 同时使用；
+    # 这里使用非交互执行模式，并把工作目录限定为用户选择的代码工作区。
+    cmd = [codex, "exec", "--ephemeral", "--skip-git-repo-check", "-m", implementation_model,
+           "--dangerously-bypass-approvals-and-sandbox", "--json", "-C", workspace, prompt]
+    job = start_job("feature-implementation", cmd, cwd=workspace)
+    st = load_state()
+    st["implementation"] = {"status": "running", "workspace": workspace,
+                             "before": before, "before_snapshot": before_snapshot,
+                             "skill": skill_path, "job": job.id}
+    save_state(st)
+    return {"ok": True, "job": job.snapshot(), "skill_path": skill_path,
+            "workspace": workspace}
+
+
+@route("/api/implementation/result", ("POST",))
+def api_implementation_result(q, body):
+    b = body or {}
+    output = str(b.get("output") or "")
+    job_status = str(b.get("job_status") or "unknown")
+    st = load_state()
+    rec = st.get("implementation") or {}
+    workspace = normalize_workspace_path(rec.get("workspace") or selected_workspace(b))
+    changed = subprocess.run(["git", "-C", workspace, "status", "--porcelain"],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             text=True, errors="replace").stdout.splitlines()
+    after_status = "\n".join(changed)
+    before_snapshot = rec.get("before_snapshot") or {}
+    after_snapshot = implementation_snapshot(workspace)
+    snapshot_files = sorted(path for path, value in after_snapshot.items()
+                            if path not in before_snapshot or before_snapshot[path] != value)
+    before_lines = str(rec.get("before") or "").splitlines()
+    before_map = {x[3:].strip(): x[:2] for x in before_lines if len(x) > 3}
+    after_map = {x[3:].strip(): x[:2] for x in changed if len(x) > 3}
+    files = sorted(set(path for path, status in after_map.items()
+                       if path not in before_map or before_map[path] != status)
+                   | set(snapshot_files))
+    dirs = sorted(set(os.path.dirname(x) or "." for x in files))
+    result = None
+    for blob in reversed(_split_json_blobs(output)):
+        try:
+            obj = json.loads(blob)
+            if isinstance(obj, dict) and ("summary" in obj or "tests" in obj):
+                result = obj
+                break
+        except Exception:
+            pass
+    result = result or {}
+    reported_dirs = result.get("changed_dirs") or []
+    if not isinstance(reported_dirs, list):
+        reported_dirs = [str(reported_dirs)]
+    reported_dirs = [str(x).strip() for x in reported_dirs if str(x).strip()]
+    result["detected_dirs"] = dirs
+    result["changed_dirs"] = sorted(set(dirs + reported_dirs))
+    result["changed_files"] = files
+    result["reported_dirs"] = reported_dirs
+    result["skill_path"] = rec.get("skill") or ""
+    result["model"] = selected_codex_model()
+    codex_state = st.setdefault("codex", {})
+    models_used = codex_state.setdefault("models_used", [])
+    if result["model"] and result["model"] not in models_used:
+        models_used.append(result["model"])
+    result["implementation_status"] = "completed" if job_status == "ok" else "failed"
+    result["job_status"] = job_status
+    errors = [line for line in output.splitlines()
+              if re.search(r"error|failed|failure|exception|未找到|失败|错误", line, re.I)]
+    if job_status != "ok":
+        reason = "Codex 进程未正常结束，已产生的修改可能不完整。"
+    elif not files:
+        reason = ("Codex 进程执行完成，但 Git 状态和源码文件快照都没有新增变化；"
+                  "当前确认没有检测到本次代码写入。")
+    else:
+        reason = "已检测到本次新增或变化的文件。"
+    result["error_reason"] = reason if job_status != "ok" or not files else ""
+    result["diagnostics"] = {
+        "workspace": workspace,
+        "before_git_status": str(rec.get("before") or "")[-12000:],
+        "after_git_status": after_status[-12000:],
+        "changed_by_snapshot": snapshot_files,
+        "error_lines": errors[-30:],
+        "output_tail": output[-12000:],
+    }
+    st["implementation"]["status"] = "done"
+    st["implementation"]["result"] = result
+    save_state(st)
+    return {"ok": True, **result}
+
+
+@route("/api/eval/frr", ("POST",))
+def api_eval_frr(q, body):
+    root = selected_workspace(body)
+    found = []
+    for base, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS and not d.startswith(".")]
+        for fn in files:
+            if fn.lower().endswith(".frr"):
+                found.append(os.path.relpath(os.path.join(base, fn), root).replace("\\", "/"))
+    return {"ok": True, "exists": bool(found), "files": found[:100], "root": root}
+
+
 @route("/api/eval/code", ("POST",))
 def api_eval_code(q, body):
     b = body or {}
     name = b.get("feature") or load_state().get("feature_name") or ""
     topic = (b.get("topic") or "").strip()
     paths = b.get("paths") or []
+    root = selected_workspace(b)
+    if not os.path.isdir(os.path.join(root, ".repo")):
+        return {"ok": False, "error": "当前代码目录不是 repo 工作区（缺少 .repo）：%s" % root,
+                "local_root": root}
     try:
         # 本地基准：前端传的目录 > 代码基线目录 > 上次移植目录
         res = code_eval(name, topic, paths, b.get("map") or None,
-                        b.get("path") or None)
+                        root)
     except Exception as exc:
         traceback.print_exc()
         return {"ok": False, "error": "代码评估异常：%s" % exc}
@@ -3044,7 +3877,7 @@ def api_port_plan(q, body):
     if not url:
         return {"ok": False, "error": "请填写 gerrit topic / change 链接"}
     # plan 必须和 download 扫同一棵目录，否则预检显示的仓库和实际落地的仓库对不上
-    path = normalize_workspace_path((b.get("path") or "").strip() or WORKSPACE)
+    path = selected_workspace(b)
     res = run_gerrit("plan", url, timeout=180, extra=["--workspace", path])
     return {"ok": res.get("status") == "ok", "plan": res, "workspace": path}
 
@@ -3057,7 +3890,7 @@ def api_port_precheck(q, body):
     url = (b.get("topic") or "").strip()
     if not url:
         return {"ok": False, "error": "请填写 gerrit topic / change 链接"}
-    path = normalize_workspace_path((b.get("path") or "").strip() or WORKSPACE)
+    path = selected_workspace(b)
     res = run_gerrit("precheck", url, timeout=300, extra=["--workspace", path])
     for change in (res.get("changes") or res.get("precheck", {}).get("changes") or []):
         if isinstance(change, dict) and change.get("subject"):
@@ -3103,7 +3936,7 @@ def api_port_download(q, body):
     script = gerrit_script()
     if not script:
         return {"ok": False, "error": "找不到 tools/gerrit_dl.py"}
-    path = normalize_workspace_path((b.get("path") or "").strip() or WORKSPACE)
+    path = selected_workspace(b)
     if not os.path.isdir(path):
         return {"ok": False, "error": "目标目录不存在：%s" % path}
     # 始终显式指定扫描根：否则 gerrit_dl.py 会退回默认的 workspace/monaco/master，
@@ -3170,6 +4003,10 @@ def api_port_result(q, body):
     has_conflict = any((c.get("state") or "") in ("conflict", "conflict_aborted")
                        for c in changes)
     conflicts = analyze_conflicts(changes) if has_conflict else []
+    workspace = normalize_workspace_path(
+        (load_state().get("port") or {}).get("path") or WORKSPACE)
+    adaptation = analyze_gapp_390_adaptation(changes, workspace)
+    screen_review = review_import_screens(workspace)
     # 每条 change 的 state/message 就是失败原因，必须完整给到前端
     brief = [{
         "number": c.get("number"),
@@ -3191,10 +4028,14 @@ def api_port_result(q, body):
     st["port"]["done"] = (status == "ok")
     st["port"]["last_status"] = status
     save_state(st)
+    payload["gapp_390_adaptation"] = adaptation
+    payload["screen_review"] = screen_review
     _save_last_download({"status": status, "at": now_str(), "payload": payload,
                          "raw_tail": text[-8000:]})
     return {"ok": status == "ok", "status": status, "payload": payload,
             "changes": brief, "conflicts": conflicts,
+            "gapp_390_adaptation": adaptation,
+            "screen_review": screen_review,
             "summary": payload.get("summary") or [],
             "message": payload.get("message") or ""}
 
@@ -3453,7 +4294,9 @@ def api_selftest_items(q, body):
     st = load_state()
     saved = dict((i.get("id"), i) for i in (st.get("selftest", {}).get("items") or []))
     items = []
-    for base in SELFTEST_ITEMS:
+    pfs_items = (st.get("pfs") or {}).get("items") or []
+    test_items = pfs_items or SELFTEST_ITEMS
+    for base in test_items:
         it = dict(base)
         it["state"] = saved.get(base["id"], {}).get("state", "pending")
         it["note"] = saved.get(base["id"], {}).get("note", "")
