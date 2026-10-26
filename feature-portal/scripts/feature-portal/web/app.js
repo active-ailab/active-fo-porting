@@ -744,6 +744,9 @@ async function saveImplementationModel() {
   if (!model) { toast('请先选择 Codex 模型', 'warn'); return; }
   const r = await api('/api/codex/implementation-model', { model: model });
   if (!r.ok) { toast(r.error || '模型保存失败', 'danger'); return; }
+  S.state = S.state || {};
+  S.state.codex = S.state.codex || {};
+  S.state.codex.implementation_model = r.model;
   $('#codexModelNote').textContent = '已保存：' + r.model;
   toast('Codex 模型已保存', 'ok');
 }

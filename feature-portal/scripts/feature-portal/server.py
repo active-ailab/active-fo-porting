@@ -615,7 +615,7 @@ def save_state(st):
 
 def patch_state(patch):
     """只接受已知的顶层字段，避免页面乱塞的键被永久写进 state.json。"""
-    allowed = {"workspace", "feature_name", "eval", "feishu", "port", "build", "flash",
+    allowed = {"workspace", "feature_name", "eval", "feishu", "codex", "port", "build", "flash",
                "selftest", "recent_paths", "baseline"}
     with _state_lock:
         st = load_state()
