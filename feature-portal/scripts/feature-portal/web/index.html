@@ -106,13 +106,14 @@
       <pre class="term" id="baseLog" hidden>等待执行…</pre>
     </div>
 
-    <div class="card" id="feishuCard">
+    <div class="card settings-card" id="feishuCard">
       <div class="card-head">
         <h3>准备工作：飞书授权</h3>
-        <span class="badge muted" id="feishuBadge">检查中…</span>
+        <div class="head-right"><span class="badge muted" id="feishuBadge">检查中…</span><button class="collapse-toggle" type="button" aria-expanded="false" aria-controls="feishuSettings" data-target="feishuSettings">⌄</button></div>
       </div>
-      <p class="card-sub">后续 PFS、文档和表格读取统一使用这里的飞书授权；代码评估和移植继续使用上面的代码基线目录。</p>
-      <div class="base-grid">
+      <div class="settings-body" id="feishuSettings" hidden>
+        <p class="card-sub">后续 PFS、文档和表格读取统一使用这里的飞书授权；代码评估和移植继续使用上面的代码基线目录。</p>
+        <div class="base-grid">
         <div class="field span2">
           <label>飞书应用 ID（可选）</label>
           <input type="text" id="feishuAppId" placeholder="cli_xxxxxxxxxxxxxxxx">
@@ -121,37 +122,40 @@
           <label>授权状态</label>
           <div class="base-status" id="feishuStatus">检查中…</div>
         </div>
-      </div>
-      <div class="base-actions">
-        <button class="btn primary" id="btnFeishuAuth">飞书授权</button>
-        <span class="danger-note" id="feishuNote">App Secret 只保存在本机服务端，不进入页面。</span>
+        </div>
+        <div class="base-actions">
+          <button class="btn primary" id="btnFeishuAuth">飞书授权</button>
+          <span class="danger-note" id="feishuNote">App Secret 只保存在本机服务端，不进入页面。</span>
+        </div>
       </div>
     </div>
 
-    <div class="card" id="codexCard">
+    <div class="card settings-card" id="codexCard">
       <div class="card-head">
         <h3>准备工作：Codex</h3>
-        <span class="badge muted" id="codexPrepBadge">检查中…</span>
+        <div class="head-right"><span class="badge muted" id="codexPrepBadge">检查中…</span><button class="collapse-toggle" type="button" aria-expanded="false" aria-controls="codexSettings" data-target="codexSettings">⌄</button></div>
       </div>
-      <p class="card-sub">填写自己的 OpenAI API Key，保存后刷新可用模型；功能实现会使用下面选择的本机 Codex 模型。</p>
-      <div class="base-grid">
+      <div class="settings-body" id="codexSettings" hidden>
+        <p class="card-sub">填写自己的 OpenAI API Key，保存后刷新可用模型；功能实现会使用下面选择的本机 Codex 模型。</p>
+        <div class="base-grid">
         <div class="field span2">
           <label>OpenAI API Key</label>
           <input type="password" id="openaiApiKey" autocomplete="off" placeholder="sk-…（留空表示不修改）">
         </div>
-      </div>
-      <div class="base-actions">
-        <button class="btn primary" id="btnCodexConfig">保存 Codex 配置</button>
-        <span class="danger-note" id="codexPrepNote">不会在页面中显示完整 API Key。</span>
-      </div>
-      <div class="base-actions" style="margin-top:14px">
+        </div>
+        <div class="base-actions">
+          <button class="btn primary" id="btnCodexConfig">保存 Codex 配置</button>
+          <span class="danger-note" id="codexPrepNote">不会在页面中显示完整 API Key。</span>
+        </div>
+        <div class="base-actions" style="margin-top:14px">
         <label class="field-inline-label">功能实现模型</label>
         <select id="implementationModel" class="model-select"></select>
         <button class="btn ghost small" id="btnRefreshCodexModels">刷新模型</button>
         <button class="btn primary small" id="btnSaveImplementationModel">保存模型</button>
         <span class="badge muted" id="codexModelBadge">检查中…</span>
+        </div>
+        <div class="path-note" id="codexModelNote">正在读取本机 Codex 模型清单…</div>
       </div>
-      <div class="path-note" id="codexModelNote">正在读取本机 Codex 模型清单…</div>
     </div>
 
   </section>
@@ -196,7 +200,7 @@
           </div>
         </div>
         <div class="path-note" id="pfsNote">填写飞书链接和需求标题；将读取标题下方内容并生成 PFS。</div>
-        <div class="eval-body" id="pfsBody"></div>
+        <div class="eval-body" id="pfsBody" hidden></div>
         <div class="implementation-card" id="implementationCard" hidden>
           <div class="card-head">
             <h3>功能实现</h3>

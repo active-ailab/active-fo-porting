@@ -4,6 +4,9 @@
 # 端口默认 8770，--idle-exit 默认 8（页面关闭后自动退出）。
 set -u
 
+# 避免门户启动时把 API Key 传给 ChatGPT/Codex 客户端；门户自身读取 codex.env。
+unset OPENAI_API_KEY OPENAI_BASE_URL OPENAI_MODEL
+
 cd "$(dirname "$0")" || exit 1
 
 PORT="${1:-8770}"

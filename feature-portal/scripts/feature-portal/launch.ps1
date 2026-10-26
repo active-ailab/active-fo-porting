@@ -9,9 +9,9 @@
 
 $Ports   = @(8770)
 $Distro  = ''
-$WslDir  = '/home/hgw/monaco/tools/feature-portal'
+$WslDir  = '/home/hgw/workspace/github/active-fo-porting/feature-portal/scripts/feature-portal'
 $Idle    = 8
-$LogPath = '/home/hgw/monaco/tools/feature-portal/feature-portal-server.log'
+$LogPath = '/home/hgw/workspace/github/active-fo-porting/feature-portal/scripts/feature-portal/feature-portal-server.log'
 $TempLog = Join-Path $env:TEMP 'feature-portal-launch.log'
 $WinLog  = $TempLog
 Set-Location -LiteralPath $env:TEMP
@@ -206,6 +206,22 @@ function Show-Fail([string]$msg) {
     }
 }
 
+function Open-PortalUrl([string]$url) {
+    # Different Windows environments handle WSL URLs differently. Try the
+    # shell's default browser through several independent mechanisms.
+    $methods = @(
+        { Start-Process -FilePath $url -ErrorAction Stop },
+        { Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', 'start', '""', $url) -WindowStyle Hidden -ErrorAction Stop },
+        { Start-Process -FilePath 'explorer.exe' -ArgumentList $url -ErrorAction Stop },
+        { Start-Process -FilePath 'rundll32.exe' -ArgumentList @('url.dll,FileProtocolHandler', $url) -WindowStyle Hidden -ErrorAction Stop }
+    )
+    foreach ($method in $methods) {
+        try { & $method; Write-LaunchLog "browser open requested: $url"; return $true }
+        catch { Write-LaunchLog "browser open method failed: $($_.Exception.Message)" }
+    }
+    return $false
+}
+
 # ---------------- 1. 已在运行 ----------------
 Set-Loading '检测本地服务是否已在运行…'
 $port = Find-Running
@@ -280,8 +296,13 @@ if ($port -gt 0) {
 if ($port -gt 0) {
     $Title.Text = '正在进入服务…'
     Set-Loading "服务已就绪（端口 $port），正在打开浏览器…"
-    if (-not $serviceUrl) { $serviceUrl = "http://127.0.0.1:$port/" }
-    Start-Process $serviceUrl
+    # Always prefer Windows localhost forwarding. The WSL internal IP may be
+    # unreachable from the user's browser even though the service is healthy.
+    $serviceUrl = "http://127.0.0.1:$port/"
+    if (-not (Open-PortalUrl $serviceUrl)) {
+        Show-Fail "服务已启动，但无法调用系统浏览器。请手动打开：$serviceUrl"
+        exit 1
+    }
     Pump 500
     $Form.Close()
     exit 0

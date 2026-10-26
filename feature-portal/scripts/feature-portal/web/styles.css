@@ -919,6 +919,21 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
 /* ---------------- 代码基线卡片 ---------------- */
 .baseline { border-color: #24402f; }
 .head-right { display: flex; align-items: center; gap: 10px; }
+.collapse-toggle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--dim);
+  background: #101c17;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+}
+.settings-card .card-head { cursor: pointer; user-select: none; }
+.settings-card .card-head:hover { background: #101c1744; }
+.collapse-toggle:hover { color: var(--txt); border-color: #3d6650; }
 .card-sub {
   margin: 6px 0 16px;
   font-size: 12.5px;

@@ -1,0 +1,19 @@
+====================================================================
+ 功能移植工作台已启动
+   浏览器打开 : http://127.0.0.1:8770
+   WSL IP     : http://172.31.98.126:8770
+   监听       : 0.0.0.0:8770
+   工作区     : /home/hgw/monaco
+   python     : 3.8.10
+   active-build : /home/hgw/.local/bin/active-build
+   v3dl         : /home/hgw/bin/v3dl
+   gerrit_dl.py : /home/hgw/workspace/github/active-fo-porting/feature-portal/scripts/feature-portal/gerrit_dl.py
+   repo 基线    : 可用
+====================================================================
+ 提示：请在系统浏览器直接打开上面的地址；
+       在 IDE 预览面板里以 file:// 打开会连不上后端。
+       关闭所有页面后约 8 秒服务自动退出
+       反复打开会自增端口，请从 http://127.0.0.1:8770 进入
+====================================================================
+
+[lifecycle] 页面已全部关闭，服务退出

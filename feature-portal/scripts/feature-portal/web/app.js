@@ -344,7 +344,7 @@ function restoreState() {
   S.paths.code = !!(st.eval && st.eval.code && st.eval.code.done);
   if (st.pfs && st.pfs.content) {
     renderPfsEditor(st.pfs.content, null, '上次保存的 PFS');
-    $('#implementationCard').hidden = false;
+    $('#implementationCard').hidden = true;
   }
   S.conflictsOpen = !!(st.port && (st.port.conflicts || []).length);
   syncChecks();
@@ -383,10 +383,6 @@ function syncChecks() {
 
 /* ---------------- 步骤切换 ---------------- */
 function goStep(n, force) {
-  if (!force && n > 2 && !(S.paths.doc && S.paths.code)) {
-    toast('请先完成文档评估和代码评估并勾选', 'warn');
-    return;
-  }
   S.step = n;
   $$('.pane').forEach(p => p.classList.remove('active'));
   $('#pane' + n).classList.add('active');
@@ -394,7 +390,7 @@ function goStep(n, force) {
     const idx = +b.dataset.step;
     b.classList.toggle('active', idx === n);
     b.classList.toggle('done', idx < n);
-    b.classList.toggle('locked', idx > 2 && !(S.paths.doc && S.paths.code));
+    b.classList.remove('locked');
   });
   if (n === 3) refreshPortState();
   if (n === 4) updateBuildNote();
@@ -413,10 +409,10 @@ function updateNext() {
     hint.textContent = '准备工作完成后进入功能评估';
   } else if (S.step === 2) {
     const ok = S.paths.doc && S.paths.code;
-    btn.disabled = !ok;
+    btn.disabled = false;
     btn.textContent = '下一步：功能移植';
     hint.textContent = ok ? '两项评估已完成，可以进入功能移植'
-      : '请完成文档评估和代码评估，并勾选两个多选框';
+      : '可先查看功能移植；建议完成文档评估和代码评估后再执行';
   } else if (S.step === 3) {
     const blocked = S.conflictsOpen;
     btn.disabled = blocked;
@@ -793,7 +789,7 @@ async function runPfsEval() {
     S.docChecks.pfs = true;
     syncChecks();
     saveState();
-    $('#implementationCard').hidden = false;
+    $('#implementationCard').hidden = true;
     renderPfsEditor(r.pfs || '', r.analysis || null, r.source || '本次需求');
   } catch (e) { body.innerHTML = `<div class="alert danger">${esc(e.message)}</div>`; }
 }
@@ -979,6 +975,13 @@ function renderCodeBrief(r) {
 
 function renderCodeFull(r) {
   let html = '';
+  const rules = r.rules_review;
+  if (rules && (!rules.ok || (rules.has_issues !== false && String(rules.text || '').trim()))) {
+    html += '<div class="card"><h3>AI 代码评估</h3>'
+      + '<div style="white-space:pre-wrap">'
+      + esc(rules.ok ? rules.text : ('规则评审未完成：' + (rules.error || '未知原因')))
+      + '</div></div>';
+  }
 
   /* ---- 1. 依赖缺失接口（topic 代码 ↔ 本地代码） ---- */
   const ms = r.missing || {};
@@ -1802,13 +1805,22 @@ async function saveSelftest() {
 
 /* ---------------- 事件绑定 ---------------- */
 function bind() {
+  $$('.collapse-toggle').forEach(btn => {
+    const toggle = () => {
+      const panel = $('#' + btn.dataset.target);
+      const open = panel.hidden;
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? '⌃' : '⌄';
+    };
+    btn.onclick = (event) => { event.stopPropagation(); toggle(); };
+    const header = btn.closest('.card-head');
+    if (header) header.onclick = toggle;
+  });
+
   $$('.step').forEach(b => {
     b.onclick = () => {
       const n = +b.dataset.step;
-      if (n > 2 && !(S.paths.doc && S.paths.code)) {
-        toast('完成两项评估后才能解锁后续步骤', 'warn');
-        return;
-      }
       goStep(n);
     };
   });

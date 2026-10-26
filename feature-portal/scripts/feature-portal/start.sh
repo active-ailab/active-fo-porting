@@ -6,6 +6,10 @@
 #   ./start.sh --host 127.0.0.1
 set -u
 
+# OPENAI_API_KEY 仅由 Feature Portal 从 codex.env 隔离读取，不能污染
+# ChatGPT/Codex 客户端的登录环境。
+unset OPENAI_API_KEY OPENAI_BASE_URL OPENAI_MODEL
+
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 
 PY=""
