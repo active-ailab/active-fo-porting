@@ -3471,10 +3471,9 @@ def api_codex_models(q, body):
     """返回当前 API Key 能访问的模型；无 Key 或查询失败时返回可选候选。"""
     b = body or {}
     key = str(b.get("api_key") or os.environ.get("OPENAI_API_KEY", "")).strip()
-    fallback = list(dict.fromkeys([CODEX_MODEL] + CODEX_FALLBACK_MODELS))
     if not key:
-        return {"ok": True, "configured": False, "models": fallback,
-                "message": "请输入 API Key 后刷新，可查询该 Key 实际可用模型。"}
+        return {"ok": True, "configured": False, "models": [],
+                "message": "请先填写自己的 OpenAI API Key，保存后刷新可用模型。"}
     req = urllib.request.Request(
         os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/models",
         headers={"Authorization": "Bearer " + key}, method="GET")
@@ -3485,15 +3484,15 @@ def api_codex_models(q, body):
                if x.get("id") and ("codex" in str(x.get("id")).lower()
                                     or str(x.get("id")).startswith(("gpt-", "o")))]
         models = sorted(set(ids), key=lambda x: (0 if "codex" in x else 1, x))
-        return {"ok": True, "configured": True, "models": models or fallback,
-                "message": "已从 OpenAI 查询当前 API Key 可访问模型。" if models else "接口未返回匹配模型，显示候选模型。"}
+        return {"ok": True, "configured": True, "models": models,
+                "message": "已从 OpenAI 查询当前 API Key 可访问模型。" if models else "该 Key 没有返回可用的 Codex/GPT 模型。"}
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")[:300]
-        return {"ok": True, "configured": True, "models": fallback,
-                "message": "模型查询失败（HTTP %s），显示候选模型：%s" % (exc.code, detail)}
+        return {"ok": False, "configured": True, "models": [],
+                "message": "模型查询失败（HTTP %s）：%s" % (exc.code, detail)}
     except Exception as exc:
-        return {"ok": True, "configured": True, "models": fallback,
-                "message": "模型查询失败，显示候选模型：%s" % exc}
+        return {"ok": False, "configured": True, "models": [],
+                "message": "模型查询失败：%s" % exc}
 
 
 @route("/api/codex/config", ("POST",))

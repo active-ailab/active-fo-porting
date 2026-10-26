@@ -767,7 +767,11 @@ async function saveCodexConfig() {
   if (!key) { toast('请输入 OpenAI API Key', 'warn'); return; }
   const r = await api('/api/codex/config', { api_key: key, model: model });
   $('#openaiApiKey').value = '';
-  if (r.ok) { toast('Codex 配置已保存', 'ok'); refreshCodexPrep(); }
+  if (r.ok) {
+    toast('Codex 配置已保存，正在刷新模型', 'ok');
+    refreshCodexPrep();
+    refreshImplementationModels();
+  }
   else toast(r.error || '保存失败', 'danger');
 }
 
