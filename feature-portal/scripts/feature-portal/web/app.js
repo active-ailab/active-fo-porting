@@ -735,8 +735,20 @@ async function refreshImplementationModels() {
   select.innerHTML = '<option value="">请选择 Codex 模型</option>' +
     (r.models || []).map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
   if (r.selected) select.value = r.selected;
+  else if (r.models && r.models.length) {
+    // 首次进入没有历史选择时，自动保存当前下拉框显示的第一个模型。
+    select.value = r.models[0];
+    const saved = await api('/api/codex/implementation-model', { model: select.value });
+    if (saved.ok) {
+      S.state = S.state || {};
+      S.state.codex = S.state.codex || {};
+      S.state.codex.implementation_model = saved.model;
+    }
+  }
   $('#codexModelBadge').textContent = r.models && r.models.length ? `${r.models.length} 个可用` : '无模型';
-  $('#codexModelNote').textContent = r.message || (r.error || '');
+  $('#codexModelNote').textContent = select.value
+    ? `已保存当前模型：${select.value}`
+    : (r.message || (r.error || ''));
 }
 
 async function saveImplementationModel() {
