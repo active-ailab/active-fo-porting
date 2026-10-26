@@ -726,7 +726,6 @@ async function refreshCodexPrep() {
     $('#codexPrepNote').textContent = r.cli
       ? '已连接本机 Codex 登录态，评估将通过 Codex CLI 执行，不使用 API 余额。'
       : (r.configured ? ('当前模型：' + r.model) : '请输入 API Key 后保存。');
-    await loadCodexModels('', r.model);
   } catch (e) { $('#codexPrepNote').textContent = '检查失败：' + e.message; }
 }
 
@@ -749,23 +748,10 @@ async function saveImplementationModel() {
   toast('Codex 模型已保存', 'ok');
 }
 
-async function loadCodexModels(apiKey, selected) {
-  const note = $('#openaiModelNote');
-  note.textContent = '正在查询可用模型…';
-  const r = await api('/api/codex/models', { api_key: apiKey || '' });
-  const models = r.models || [];
-  const select = $('#openaiModel');
-  select.innerHTML = models.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  if (selected && models.includes(selected)) select.value = selected;
-  else if (models.length) select.value = models[0];
-  note.textContent = r.message || '请选择模型后保存。';
-}
-
 async function saveCodexConfig() {
   const key = $('#openaiApiKey').value.trim();
-  const model = $('#openaiModel').value.trim();
   if (!key) { toast('请输入 OpenAI API Key', 'warn'); return; }
-  const r = await api('/api/codex/config', { api_key: key, model: model });
+  const r = await api('/api/codex/config', { api_key: key });
   $('#openaiApiKey').value = '';
   if (r.ok) {
     toast('Codex 配置已保存，正在刷新模型', 'ok');
