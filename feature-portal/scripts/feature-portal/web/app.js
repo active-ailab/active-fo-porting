@@ -1836,7 +1836,6 @@ function bind() {
   $('#feishuAppId').onchange = saveState;
   refreshFeishuStatus();
   $('#btnCodexConfig').onclick = saveCodexConfig;
-  $('#btnCodexModels').onclick = () => loadCodexModels($('#openaiApiKey').value.trim(), $('#openaiModel').value);
   refreshCodexPrep();
   $('#btnRefreshCodexModels').onclick = refreshImplementationModels;
   $('#btnSaveImplementationModel').onclick = saveImplementationModel;
