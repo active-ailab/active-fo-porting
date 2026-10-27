@@ -3,13 +3,13 @@
   "feature_name": "HYROX",
   "eval": {
     "doc": {
-      "done": false
+      "done": true
     },
     "code": {
       "done": true
     },
-    "pfs": false,
-    "frr": false
+    "pfs": true,
+    "frr": true
   },
   "feishu": {
     "app_id": "",
@@ -38,70 +38,9 @@
     "mode": "app"
   },
   "selftest": {
-    "items": [
-      {
-        "id": "pfs-1",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-2",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-3",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-4",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-5",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-6",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-7",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-8",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-9",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-10",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-11",
-        "state": "ok",
-        "note": ""
-      },
-      {
-        "id": "pfs-12",
-        "state": "ok",
-        "note": ""
-      }
-    ],
-    "done": true,
-    "at": "2026-10-26 15:51:31"
+    "items": [],
+    "done": false,
+    "at": ""
   },
   "recent_paths": [
     "/home/hgw/pamir"
@@ -112,70 +51,85 @@
     "branch": "releases/pike/ota4"
   },
   "pfs": {
-    "content": "1、新增运动入口至左右手选择页、Template ReadyGo页和ReadyGo页的流程覆盖\n2、补充HSP连接完成、连接页跳过后进入ReadyGo页的流程\n3、新增ReadyGo页点击Go后进入自动校准提示页，并支持开始10秒倒计时或退出返回ReadyGo页\n4、新增运动中跑步阶段自动校准成功后的震动Toast提示\n5、明确运动中自动校准失败时不显示提示\n6、增加HSP版本号确认逻辑：版本号未确认动态校准时进入静态校准流程\n7、新增静态校准首次进入时的佩戴提示页、校准确认页及校准指导流程\n8、新增从校准确认页跳过校准后的跳过确认页，并支持点击校准或继续跳过\n9、新增校准成功后进入成功确认页并返回ReadyGo/Template ReadyGo页的流程\n10、新增校准失败后进入失败确认页并返回校准确认页的流程\n11、明确佩戴提示页可由多种运动类型共用首次展示\n12、保持校准成功/失败对运动中及运动记录的对齐逻辑不变",
+    "content": "1、新增进入运动后直接进入左右手选择页面和Template ReadyGo页面的流程\n2、新增进入运动后直接进入ReadyGo页面的流程\n3、新增HSP连接完成后进入ReadyGo页面的流程\n4、新增在HSP连接页面点击跳过后进入ReadyGo页面的流程\n5、新增从ReadyGo页面点击Go进入自动校准提示页，并支持开始10秒倒计时或退出返回ReadyGo页面\n6、新增运动开始后跑步阶段自动校准成功时通过toast和震动提示\n7、明确运动开始后跑步阶段自动校准未成功时不进行提示\n8、增加HSP版本号确认逻辑，版本号未确认支持动态校准时进入动态校准，否则进入静态校准流程\n9、新增静态校准首次进入时的佩戴提示页、校准确认页和开始校准流程\n10、新增多运动类型共用首次佩戴提示页的流程\n11、新增跳过校准后的跳过确认页，并支持点击校准进入开始校准或点击继续跳过进入ReadyGo/Template ReadyGo页面\n12、新增从校准确认页进入校准指导和佩戴提示页的流程\n13、新增校准成功后进入成功确认页，再返回ReadyGo/Template ReadyGo页面\n14、新增校准失败后进入失败确认页，再返回校准确认页\n15、保持校准成功或失败对运动中及运动记录的对齐逻辑与当前线上一致",
+    "path": "/home/hgw/workspace/github/active-fo-porting/feature-portal/scripts/feature-portal/data/pfs-skills/_1_.md",
     "items": [
       {
         "id": "pfs-1",
-        "label": "1、新增运动入口至左右手选择页、Template ReadyGo页和ReadyGo页的流程覆盖",
+        "label": "1、新增进入运动后直接进入左右手选择页面和Template ReadyGo页面的流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-2",
-        "label": "2、补充HSP连接完成、连接页跳过后进入ReadyGo页的流程",
+        "label": "2、新增进入运动后直接进入ReadyGo页面的流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-3",
-        "label": "3、新增ReadyGo页点击Go后进入自动校准提示页，并支持开始10秒倒计时或退出返回ReadyGo页",
+        "label": "3、新增HSP连接完成后进入ReadyGo页面的流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-4",
-        "label": "4、新增运动中跑步阶段自动校准成功后的震动Toast提示",
+        "label": "4、新增在HSP连接页面点击跳过后进入ReadyGo页面的流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-5",
-        "label": "5、明确运动中自动校准失败时不显示提示",
+        "label": "5、新增从ReadyGo页面点击Go进入自动校准提示页，并支持开始10秒倒计时或退出返回ReadyGo页面",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-6",
-        "label": "6、增加HSP版本号确认逻辑：版本号未确认动态校准时进入静态校准流程",
+        "label": "6、新增运动开始后跑步阶段自动校准成功时通过toast和震动提示",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-7",
-        "label": "7、新增静态校准首次进入时的佩戴提示页、校准确认页及校准指导流程",
+        "label": "7、明确运动开始后跑步阶段自动校准未成功时不进行提示",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-8",
-        "label": "8、新增从校准确认页跳过校准后的跳过确认页，并支持点击校准或继续跳过",
+        "label": "8、增加HSP版本号确认逻辑，版本号未确认支持动态校准时进入动态校准，否则进入静态校准流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-9",
-        "label": "9、新增校准成功后进入成功确认页并返回ReadyGo/Template ReadyGo页的流程",
+        "label": "9、新增静态校准首次进入时的佩戴提示页、校准确认页和开始校准流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-10",
-        "label": "10、新增校准失败后进入失败确认页并返回校准确认页的流程",
+        "label": "10、新增多运动类型共用首次佩戴提示页的流程",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-11",
-        "label": "11、明确佩戴提示页可由多种运动类型共用首次展示",
+        "label": "11、新增跳过校准后的跳过确认页，并支持点击校准进入开始校准或点击继续跳过进入ReadyGo/Template ReadyGo页面",
         "hint": "按本条 PFS 需求执行并确认"
       },
       {
         "id": "pfs-12",
-        "label": "12、保持校准成功/失败对运动中及运动记录的对齐逻辑不变",
+        "label": "12、新增从校准确认页进入校准指导和佩戴提示页的流程",
+        "hint": "按本条 PFS 需求执行并确认"
+      },
+      {
+        "id": "pfs-13",
+        "label": "13、新增校准成功后进入成功确认页，再返回ReadyGo/Template ReadyGo页面",
+        "hint": "按本条 PFS 需求执行并确认"
+      },
+      {
+        "id": "pfs-14",
+        "label": "14、新增校准失败后进入失败确认页，再返回校准确认页",
+        "hint": "按本条 PFS 需求执行并确认"
+      },
+      {
+        "id": "pfs-15",
+        "label": "15、保持校准成功或失败对运动中及运动记录的对齐逻辑与当前线上一致",
         "hint": "按本条 PFS 需求执行并确认"
       }
-    ],
-    "path": "/home/hgw/workspace/github/active-fo-porting/feature-portal/scripts/feature-portal/data/pfs-skills/_1_.md"
+    ]
   },
   "implementation": {
     "status": "done",
