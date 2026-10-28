@@ -40,6 +40,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
    直接以 http(s) 打开时同源请求；以 file:// 方式打开（IDE 预览面板）
    时自动探测本机 8770~8776 端口，找到哪个连上就用哪个。 */
 let API_BASE = '';
+let backendConnected = false;
 const API_PORTS = [8770, 8771, 8772, 8773, 8774, 8775, 8776];
 
 function withTimeout(promise, ms) {
@@ -59,19 +60,21 @@ async function pingBase(base) {
 }
 
 async function resolveApiBase() {
-  if (location.protocol !== 'file:') { API_BASE = ''; return; }
+  const hosted = location.hostname.endsWith('.github.io');
+  if (location.protocol !== 'file:' && !hosted) { API_BASE = ''; return; }
   const qs = new URLSearchParams(location.search).get('api');
   const cands = [];
   if (qs) cands.push(qs.replace(/\/$/, ''));
-  const cached = localStorage.getItem('portalApiBase');
+  let cached = '';
+  try { cached = localStorage.getItem('portalApiBase'); } catch (e) { /* storage unavailable */ }
   if (cached && cands.indexOf(cached) < 0) cands.push(cached);
   API_PORTS.forEach(p => cands.push('http://127.0.0.1:' + p));
-  for (const b of cands) {
-    if (await pingBase(b)) {
-      API_BASE = b;
-      try { localStorage.setItem('portalApiBase', b); } catch (e) {}
-      return;
-    }
+  const results = await Promise.all(cands.map(b => pingBase(b)));
+  const found = results.indexOf(true);
+  if (found >= 0) {
+    API_BASE = cands[found];
+    try { localStorage.setItem('portalApiBase', API_BASE); } catch (e) {}
+    return;
   }
   API_BASE = '';
 }
@@ -83,10 +86,12 @@ async function api(path, body, method) {
     opt.headers = { 'Content-Type': 'application/json' };
     opt.body = JSON.stringify(body || {});
   }
-  const res = await fetch(url, opt);
+  let res;
+  try { res = await fetch(url, opt); }
+  catch (e) { throw new Error('后端未连接，请启动 Feature Portal 本地服务后重试'); }
   let data;
   try { data = await res.json(); }
-  catch (e) { throw new Error('服务返回非 JSON（HTTP ' + res.status + '）'); }
+  catch (e) { throw new Error('后端未连接或服务返回无效数据（HTTP ' + res.status + '）'); }
   return data;
 }
 
@@ -108,9 +113,15 @@ async function boot() {
   try {
     S.boot = await api('/api/bootstrap');
   } catch (e) {
-    renderOffline(e.message);
+    S.boot = { env: { workspace: '', python: '' }, projects: { families: [], active: {} } };
+    S.state = {};
+    renderEnv();
+    renderProjects();
+    restoreState();
+    updateNext();
     return;
   }
+  backendConnected = true;
   S.state = S.boot.state;
   startHeartbeat();
   renderEnv();
@@ -119,6 +130,34 @@ async function boot() {
   await loadBaseline();
   await loadSelftest();
   updateNext();
+}
+
+async function ensureBackend() {
+  if (backendConnected && await pingBase(API_BASE)) return true;
+  await resolveApiBase();
+  if (!(await pingBase(API_BASE))) {
+    backendConnected = false;
+    toast('后端未连接，请先启动 Feature Portal 本地服务', 'danger');
+    return false;
+  }
+  try {
+    const bootData = await api('/api/bootstrap');
+    if (!bootData || !bootData.env || !bootData.state) throw new Error('启动信息无效');
+    S.boot = bootData;
+    S.state = bootData.state;
+    backendConnected = true;
+    renderEnv();
+    renderProjects();
+    if (!$('#basePath').value) {
+      $('#basePath').value = (bootData.state.baseline || {}).path || bootData.env.workspace || '';
+    }
+    startHeartbeat();
+    return true;
+  } catch (e) {
+    backendConnected = false;
+    toast('后端未连接，请先启动 Feature Portal 本地服务', 'danger');
+    return false;
+  }
 }
 
 /* ---------------- 心跳 / 关闭登记 ----------------
@@ -792,6 +831,7 @@ async function saveCodexConfig() {
 }
 
 async function runPfsEval() {
+  if (!(await ensureBackend())) return;
   const url = ($('#pfsUrl').value || '').trim();
   const section = ($('#reqSection').value || '').trim();
   if (!url) { toast('请先填写飞书需求链接', 'warn'); return; }
@@ -923,6 +963,7 @@ function renderDoc(r) {
 }
 
 async function runFigmaEval() {
+  if (!(await ensureBackend())) return;
   const urls = ($('#figmaUrls').value || '').split(/\r?\n|,/).map(x => x.trim()).filter(Boolean);
   if (!urls.length) { toast('请先填写至少一个 Figma 链接', 'warn'); return; }
   const busy = $('#figmaBusy');
@@ -981,6 +1022,7 @@ function evalLocalPath() {
 
 async function runCodeEval() {
   if (runCodeEval.busy) return;
+  if (!(await ensureBackend())) return;
   const name = $('#featureName').value.trim();
   const topic = $('#evalTopic').value.trim();
   if (!$('#basePath').value) {
@@ -1907,7 +1949,7 @@ function bind() {
   refreshCodexPrep();
   $('#btnRefreshCodexModels').onclick = refreshImplementationModels;
   $('#btnSaveImplementationModel').onclick = saveImplementationModel;
-  refreshImplementationModels();
+  refreshImplementationModels().catch(() => {});
 
   // 功能评估：解析需求后自动完成文档评估
   $('#btnCode').onclick = runCodeEval;
