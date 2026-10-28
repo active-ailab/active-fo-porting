@@ -3834,6 +3834,40 @@ def repo_baseline(workspace=None):
                 branches.append(rev)
             items.append(info)
 
+    # 分支候选以工作区内各 git 仓库实际存在的 branch 为准；manifest
+    # revision 仅作为没有 git 工作区时的兜底候选。
+    try:
+        # repo 工程根本身有时也是 git 工作区，先读取它。
+        roots = [workspace_root]
+        for rp in roots:
+            out = subprocess.run(
+                ["git", "-C", rp, "branch", "--format=%(refname:short)", "--all"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                universal_newlines=True, timeout=5, errors="replace")
+            for line in (out.stdout or "").splitlines():
+                branch = line.strip()
+                if branch.startswith("remotes/"):
+                    branch = branch.split("/", 2)[-1]
+                if branch and branch != "HEAD" and branch not in branches:
+                    branches.append(branch)
+        candidates = list(manifest_map().keys())
+        for rel_path in candidates:
+            rp = os.path.join(workspace_root, rel_path)
+            if not os.path.isdir(os.path.join(rp, ".git")):
+                continue
+            out = subprocess.run(
+                ["git", "-C", rp, "branch", "--format=%(refname:short)", "--all"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                universal_newlines=True, timeout=5, errors="replace")
+            for line in (out.stdout or "").splitlines():
+                branch = line.strip()
+                if branch.startswith("remotes/"):
+                    branch = branch.split("/", 2)[-1]
+                if branch and branch != "HEAD" and branch not in branches:
+                    branches.append(branch)
+    except Exception:
+        pass
+
     head, head_repo = "", ""
     try:
         # 只试前几个仓库：repo 同步后基本都是 detached，全遍历会跑几十次 git

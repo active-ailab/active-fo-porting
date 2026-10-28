@@ -27,7 +27,7 @@
 <nav class="steps" id="steps">
   <button class="step active" data-step="1">
     <span class="s-idx">1</span>
-    <span class="s-txt"><b>准备工作</b><i>代码基线 / 飞书 / Codex</i></span>
+    <span class="s-txt"><b>准备工作</b><i>代码基线</i></span>
   </button>
   <div class="s-arrow"></div>
   <button class="step" data-step="2">
@@ -57,42 +57,39 @@
   <section class="pane active" id="pane1">
     <div class="pane-head">
       <h2>准备工作</h2>
-      <p>先确定代码基线并完成飞书授权，再进入功能评估。</p>
     </div>
 
     <!-- 代码基线：先定目录 + manifest + 分支，再评估 -->
     <div class="card baseline" id="baselineCard">
       <div class="card-head">
-        <h3>0. 代码基线</h3>
+        <h3>代码目录</h3>
         <div class="head-right">
           <span class="badge muted" id="baseBadge">读取中…</span>
           <button class="btn ghost small" id="btnBaseRefresh">刷新</button>
         </div>
       </div>
       <p class="card-sub">
-        评估读的是这份基线下的真实代码。先选目录、manifest 和分支，用
-        <code>repo_force_checkout.sh</code> 把代码更新到位，再做代码评估。
+        评估读的是这份基线下的真实代码。先选目录、manifest 和分支，再做代码评估。
       </p>
 
       <div class="base-grid">
-        <div class="field span2">
-          <label>代码目录（repo 工作区根目录）</label>
+        <div class="field span4">
           <div class="path-row">
             <input type="text" id="basePath" spellcheck="false" placeholder="点「选择…」浏览，或直接粘贴完整路径后回车">
             <button class="btn ghost small" id="btnBasePick">选择…</button>
           </div>
         </div>
 
-        <div class="field">
-          <label>Manifest</label>
+        <div class="field span4">
+          <label>manifest</label>
           <select id="baseXml"></select>
         </div>
 
-        <div class="field">
+        <div class="field span4">
           <label>分支</label>
-          <input type="text" id="baseBranch" list="baseBranchList"
-                 placeholder="留空 = 按 manifest 的 revision">
-          <datalist id="baseBranchList"></datalist>
+          <select id="baseBranch">
+            <option value="">（按 manifest 的 revision）</option>
+          </select>
         </div>
 
       </div>
@@ -100,7 +97,7 @@
       <div class="base-actions">
         <button class="btn primary" id="btnBaseCheckout">更新代码到该基线</button>
         <button class="btn ghost" id="btnBaseCodegraph">刷新 CodeGraph</button>
-        <span class="danger-note">会强制丢弃各仓库未提交改动（默认保留 build/sign.pem）</span>
+        <span class="danger-note">会强制丢弃各仓库未提交改动</span>
       </div>
 
       <pre class="term" id="baseLog" hidden>等待执行…</pre>
@@ -164,7 +161,6 @@
   <section class="pane" id="pane2">
     <div class="pane-head">
       <h2>功能评估</h2>
-      <p>完成文档评估和代码评估后，才能进入功能移植。</p>
     </div>
 
     <div class="field" hidden>
@@ -182,15 +178,9 @@
             <h3>文档评估</h3>
           </div>
         </div>
-        <p class="eval-desc">检查需求、交互、协议、测试用例四类文档是否齐备，并给出评分。</p>
+        <p class="eval-desc">解析需求文档和figma设计稿，得出本需求的PFS，为功能自测提供依据。</p>
         <div class="eval-body" id="bodyDoc"></div>
-        <div class="doc-check-options" aria-label="文档评估条件">
-          <label class="chk-option"><input type="checkbox" id="chkPfs"><span class="chk-box"></span><span>PFS 需求评估</span></label>
-          <label class="chk-option"><input type="checkbox" id="chkFrr"><span class="chk-box"></span><span>FRR 文件存在</span></label>
-        </div>
-        <div class="path-row" style="margin-top:12px">
-          <span class="path-note">两个条件都勾选后，文档评估才算通过。</span>
-        </div>
+
         <div class="requirement-source" style="margin-top:12px">
           <label for="pfsUrl">飞书需求连接</label>
           <input class="requirement-url" type="url" id="pfsUrl" placeholder="粘贴飞书需求链接（http/https）">
@@ -232,10 +222,6 @@
             <span class="dot"></span>
             <h3>代码评估</h3>
           </div>
-          <label class="chk" title="完成代码评估后勾选">
-            <input type="checkbox" id="chkCode">
-            <span class="chk-box"></span>
-          </label>
         </div>
         <p class="eval-desc">topic 缺失接口 / 硬件支持 / 存储余量 / 移植工期，一次算清。</p>
         <div class="inline-field">
@@ -254,7 +240,6 @@
   <section class="pane" id="pane3">
     <div class="pane-head">
       <h2>代码移植</h2>
-    <p>沿用上面代码评估选定的代码目录，按 gerrit topic 一次性拉取全部 change。</p>
     </div>
 
     <div class="card">
@@ -406,14 +391,6 @@
   </section>
 
 </main>
-
-<footer class="actionbar">
-  <div class="hint" id="hint">请先完成文档评估和代码评估</div>
-  <div class="acts">
-    <button class="btn ghost" id="btnReset">重置流程</button>
-    <button class="btn primary" id="btnNext" disabled>下一步：代码移植</button>
-  </div>
-</footer>
 
 <!-- 目录选择弹窗 -->
 <div class="modal" id="dirModal" hidden>

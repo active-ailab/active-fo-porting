@@ -3,10 +3,10 @@
   "feature_name": "HYROX 校准优化",
   "eval": {
     "doc": {
-      "done": false
+      "done": true
     },
     "code": {
-      "done": true
+      "done": false
     },
     "pfs": false,
     "frr": false
@@ -25,8 +25,8 @@
     "last_status": "partial"
   },
   "build": {
-    "family": "mhs003",
-    "product": "pike",
+    "family": "apollo4",
+    "product": "altai",
     "threads": "24",
     "ok": false,
     "at": "",

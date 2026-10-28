@@ -429,10 +429,7 @@ function fillRecentPaths(paths) {
 }
 
 function syncChecks() {
-  $('#chkCode').checked = S.paths.code;
-  $('#chkPfs').checked = S.docChecks.pfs;
-  $('#chkFrr').checked = S.docChecks.frr;
-  S.paths.doc = S.docChecks.pfs && S.docChecks.frr;
+  S.paths.doc = true;
   $('#cardDoc').classList.toggle('checked', S.paths.doc);
   $('#cardCode').classList.toggle('checked', S.paths.code);
   updateNext();
@@ -460,6 +457,7 @@ function goStep(n, force) {
 function updateNext() {
   const btn = $('#btnNext');
   const hint = $('#hint');
+  if (!btn || !hint) return;
   if (S.step === 1) {
     btn.disabled = false;
     btn.textContent = '下一步：功能评估';
@@ -620,15 +618,20 @@ async function loadBaseline(keepSel) {
     sel.value = cur ? cur.name : (list[0] ? list[0].name : '');
   }
 
-  const dl = $('#baseBranchList');
-  dl.innerHTML = '';
+  const branchSelect = $('#baseBranch');
+  const selectedBranch = branchSelect.value;
+  branchSelect.innerHTML = '<option value="">（按 manifest 的 revision）</option>';
   (r.branches || []).forEach(b => {
     const o = document.createElement('option');
     o.value = b;
-    dl.appendChild(o);
+    o.textContent = b;
+    branchSelect.appendChild(o);
   });
   const sb = S.state && S.state.baseline;
-  if (sb && sb.branch && !$('#baseBranch').value) $('#baseBranch').value = sb.branch;
+  const wantedBranch = sb && sb.branch ? sb.branch : selectedBranch;
+  if (wantedBranch && [...branchSelect.options].some(o => o.value === wantedBranch)) {
+    branchSelect.value = wantedBranch;
+  }
 
   renderBaseStatus();
   if (btn) btn.disabled = false;
@@ -664,7 +667,14 @@ function onBaseXmlChange() {
   const r = S.base || {};
   const m = (r.manifests || []).find(x => x.name === $('#baseXml').value);
   // 分支跟随所选 xml 的 revision，用户仍可手改
-  $('#baseBranch').value = (m && m.revision) || '';
+  const branch = (m && m.revision) || '';
+  const branchSelect = $('#baseBranch');
+  if (branch && ![...branchSelect.options].some(o => o.value === branch)) {
+    const o = document.createElement('option');
+    o.value = branch; o.textContent = branch;
+    branchSelect.appendChild(o);
+  }
+  branchSelect.value = branch;
   renderBaseStatus();
 }
 
@@ -1941,7 +1951,7 @@ function bind() {
     };
   });
 
-  $('#btnNext').onclick = () => {
+  if ($('#btnNext')) $('#btnNext').onclick = () => {
     if (S.step < 5) goStep(S.step + 1);
   };
 
@@ -1981,15 +1991,6 @@ function bind() {
       $('#pfsNote').textContent = r.configured ? '填写飞书链接和需求标题后生成 PFS。' : '请先完成飞书授权后解析需求。';
     }
   }).catch(() => { /* 需求解析不依赖 Codex */ });
-  $('#chkCode').onchange = (e) => {
-    S.paths.code = e.target.checked; syncChecks(); saveState();
-  };
-  $('#chkPfs').onchange = (e) => {
-    S.docChecks.pfs = e.target.checked; syncChecks(); saveState();
-  };
-  $('#chkFrr').onchange = (e) => {
-    S.docChecks.frr = e.target.checked; syncChecks(); saveState();
-  };
   $('#featureName').onchange = saveState;
 
   // 步骤 2
@@ -2030,7 +2031,7 @@ function bind() {
   $('#stNote').onchange = saveSelftest;
 
   // 全局
-  $('#btnReset').onclick = async () => {
+  if ($('#btnReset')) $('#btnReset').onclick = async () => {
     if (!confirm('重置整个流程状态？评估勾选与步骤进度都会清空。')) return;
     await api('/api/reset', {});
     try { localStorage.removeItem(LS_KEY); } catch (e) { }

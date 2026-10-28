@@ -277,6 +277,18 @@ select { cursor: pointer; }
 .btn.danger { border-color: #5d2b2d; color: #ff9b9d; }
 .btn.wide { width: 100%; }
 
+/* 功能评估操作按钮：紧凑、左对齐，避免占满整行 */
+#btnPfs, #btnFigma, #btnCode {
+  width: fit-content;
+  justify-self: start;
+  background: #dff3e5;
+  border-color: #a8d6b5;
+  color: #176c45;
+}
+#btnPfs:hover:not(:disabled), #btnFigma:hover:not(:disabled), #btnCode:hover:not(:disabled) {
+  background: #c9ead3;
+}
+
 .icon-btn {
   background: none; border: 0; color: var(--dim);
   font-size: 22px; cursor: pointer; line-height: 1;
@@ -961,6 +973,11 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
 }
 .base-grid .field { margin-bottom: 0; }
 .base-grid .span2 { grid-column: span 2; }
+.base-grid .span4 { grid-column: span 4; }
+/* 基线三个编辑控件保持统一的视觉宽度，避免代码目录输入框过长 */
+.base-grid .span4 > select,
+.base-grid .span4 > input,
+.base-grid .span4 > .path-row { width: 50%; }
 .base-status {
   display: flex;
   align-items: center;
@@ -1058,6 +1075,10 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
 @media (max-width: 620px) {
   .base-grid { grid-template-columns: 1fr; }
   .base-grid .span2 { grid-column: span 1; }
+  .base-grid .span4 { grid-column: span 1; }
+  .base-grid .span4 > select,
+  .base-grid .span4 > input,
+  .base-grid .span4 > .path-row { width: 100%; }
   .offline { padding: 28px 14px 60px; }
 }
 
@@ -1106,6 +1127,11 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
   --amber: #91600b; --blue: #176d91;
 }
 body { background: radial-gradient(1000px 500px at 10% -15%, #dcefe3, transparent 65%), var(--bg); }
+body { font-size: 15px; line-height: 1.7; }
+.pane-head h2 { font-size: 24px; letter-spacing: .01em; }
+.pane-head p, .card-sub, .eval-desc, .path-note, .field > label { font-size: 14px; }
+.card, .eval-card, .sect, .modal-box { border-radius: 14px; }
+.card-head, .eval-head { gap: 16px; }
 body.stage-success { background: linear-gradient(180deg, #d9f5e4, #f4faf6); }
 .topbar, .actionbar { background: rgba(255,255,255,.94); }
 .logo { background: #e1f3e7; border-color: #b9dac5; }
@@ -1127,6 +1153,29 @@ input::placeholder, textarea::placeholder { color: #869a8e; }
 .btn:hover:not(:disabled), .btn.ghost:hover:not(:disabled) { background: #e2f1e7; }
 .btn.primary { background: #087b49; color: #fff; border-color: #087b49; }
 .btn.danger { color: #a71e27; border-color: #e9a5aa; }
+.btn,
+.btn.primary,
+.btn.ghost,
+.btn.danger {
+  background: #acd6b8;
+  border-color: #78b88b;
+  color: #176c45;
+  font-weight: 600;
+}
+.btn:hover:not(:disabled),
+.btn.primary:hover:not(:disabled),
+.btn.ghost:hover:not(:disabled),
+.btn.danger:hover:not(:disabled) {
+  background: #92cda2;
+  border-color: #61a975;
+  color: #176c45;
+}
+.badge#activeBadge,
+.badge#topicSource {
+  background: #e5e7eb;
+  border-color: #c7cbd1;
+  color: #69717c;
+}
 .requirement-source, .implementation-card { background: #f1faf4; border-color: #b8dcc4; box-shadow: none; }
 .requirement-source > label { color: #176c45; }
 .pfs-lines, .mini, .doc-check, .base-status, .check-item, .bar, .card-sub code, .dir-shortcuts button { background: #f5f8f6; }
