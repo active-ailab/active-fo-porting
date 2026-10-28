@@ -321,6 +321,9 @@ select { cursor: pointer; }
 .run-state.run { color: var(--amber); }
 
 /* ---------------- 评估卡 ---------------- */
+.feature-search-row { display:flex; gap:8px; align-items:center; max-width:520px; }
+.feature-search-row input { width:280px; }
+.env-chips .chip:last-child { cursor:pointer; user-select:none; }
 .eval-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -819,6 +822,8 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
   border: 3px solid #315340; border-top-color: #79d69d;
   border-radius: 50%; animation: spin .8s linear infinite;
 }
+.progress-track { height: 5px; margin: 12px 0; overflow: hidden; border-radius: 4px; background: rgba(255,255,255,.12); }
+.progress-bar { width: 8%; height: 100%; border-radius: 4px; background: #65d6a1; transition: width .35s ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .modal-box {
   width: min(760px, 96vw);

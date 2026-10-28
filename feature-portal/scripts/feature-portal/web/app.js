@@ -243,6 +243,21 @@ function renderEnv() {
     `<span class="chip ${ok ? 'on' : 'off'}" title="${esc(ok ? '已就绪' : '未找到 / 未授权')}">
        <i></i>${esc(n)}</span>`).join('');
   $('#wsPath').textContent = e.workspace + '  ·  python ' + e.python;
+  const sudo = $('#envChips .chip:last-child');
+  if (sudo) {
+    let clicks = 0, timer = null;
+    sudo.title = '开发者模式：连续点击 5 次显示高级配置';
+    sudo.onclick = () => {
+      clicks += 1;
+      clearTimeout(timer);
+      timer = setTimeout(() => { clicks = 0; }, 1400);
+      if (clicks >= 5) {
+        $$('.developer-only').forEach(x => { x.hidden = false; });
+        toast('开发者模式已开启', 'ok');
+        clicks = 0;
+      }
+    };
+  }
 }
 
 function renderProjects() {
@@ -282,7 +297,7 @@ function updateBuildNote() {
 
 /* --- 输入即存：目录 / topic 这些别因为没点按钮就丢了 --- */
 const LS_KEY = 'feature-portal.form';
-const FORM_FIELDS = ['featureName', 'evalTopic', 'gerritTopic', 'pfsUrl', 'reqSection',
+const FORM_FIELDS = ['featureName', 'evalTopic', 'gerritTopic', 'pfsUrl', 'reqSection', 'figmaUrls',
                      'basePath', 'baseBranch', 'baseXml'];
 let saveTimer = null;
 
@@ -322,6 +337,8 @@ function restoreState() {
   $('#featureName').value = pickSaved(st.feature_name, 'featureName', '');
   $('#pfsUrl').value = pickSaved('', 'pfsUrl', '');
   $('#reqSection').value = pickSaved('', 'reqSection', '');
+  const figma = st.figma || {};
+  $('#figmaUrls').value = pickSaved((figma.sources || []).join('\n'), 'figmaUrls', '');
   $('#feishuAppId').value = (st.feishu && st.feishu.app_id) || '';
   const savedTopic = pickSaved((st.port && st.port.topic) || '', 'gerritTopic', '');
   $('#evalTopic').value = savedTopic;
@@ -339,8 +356,9 @@ function restoreState() {
   fillRecentPaths((st.recent_paths || []).concat([$('#basePath').value]));
 
   S.paths.doc = !!(st.eval && st.eval.doc && st.eval.doc.done);
-  S.docChecks.pfs = !!(st.eval && st.eval.pfs);
-  S.docChecks.frr = !!(st.eval && st.eval.frr);
+  // 每次进入功能评估先关闭，只有本次搜索确认后才自动勾选。
+  S.docChecks.pfs = false;
+  S.docChecks.frr = false;
   S.paths.code = !!(st.eval && st.eval.code && st.eval.code.done);
   if (st.pfs && st.pfs.content) {
     renderPfsEditor(st.pfs.content, null, '上次保存的 PFS');
@@ -691,7 +709,8 @@ async function runDocEval() {
   card.classList.add('running');
   body.innerHTML = '<div class="dim">正在检索 docs/ 与 documentation/ …</div>';
   try {
-    const r = await api('/api/eval/doc', { feature: name });
+    const figmaSources = ($('#figmaUrls').value || '').split(/\r?\n|,/).map(x => x.trim()).filter(Boolean);
+    const r = await api('/api/eval/doc', { feature: name, figma_sources: figmaSources });
     body.innerHTML = renderDoc(r);
     if (!r.ok) { toast(r.error || '文档评估失败', 'danger'); }
     else {
@@ -888,7 +907,67 @@ function renderDoc(r) {
     html += '<div class="tags" style="margin-top:10px">' + r.matched_files.slice(0, 8)
       .map(f => `<span class="tag" title="${esc(f.path)}">${esc(f.name)}</span>`).join('') + '</div>';
   }
+  const f = r.figma || {};
+  if (f.files || f.error || f.message) {
+    html += '<div class="sect" style="margin-top:12px"><div class="sect-head"><b>Figma 设计证据</b></div>';
+    if (f.error) html += `<div class="alert warn">${esc(f.error)}</div>`;
+    else {
+      html += `<div class="mini-grid"><div class="mini"><div class="k">设计文件</div><div class="v">${(f.files || []).length}</div></div><div class="mini"><div class="k">页面 / Frame</div><div class="v">${(f.pages || []).length}</div></div><div class="mini"><div class="k">页面跳转</div><div class="v">${(f.edges || []).length}</div></div></div>`;
+      if (f.pages && f.pages.length) html += '<div class="tags" style="margin-top:10px">' + f.pages.slice(0, 20).map(p => `<span class="tag">${esc(p.name)}${p.width && p.height ? ` · ${Math.round(p.width)}×${Math.round(p.height)}` : ''}</span>`).join('') + '</div>';
+      if (f.edges && f.edges.length) html += '<details style="margin-top:10px"><summary>页面关系</summary><div class="path-note">' + f.edges.slice(0, 30).map(e => `${esc(e.from)} → ${esc(e.to)}（${esc(e.trigger)}）`).join('<br>') + '</div></details>';
+      (f.errors || []).forEach(e => { html += `<div class="alert warn" style="margin-top:8px">${esc(e)}</div>`; });
+    }
+    html += '</div>';
+  }
   return html;
+}
+
+async function runFigmaEval() {
+  const urls = ($('#figmaUrls').value || '').split(/\r?\n|,/).map(x => x.trim()).filter(Boolean);
+  if (!urls.length) { toast('请先填写至少一个 Figma 链接', 'warn'); return; }
+  const busy = $('#figmaBusy');
+  const busyText = $('#figmaBusyText');
+  const busyBar = $('#figmaBusyBar');
+  busy.hidden = false;
+  busyText.textContent = '正在解析 Figma 链接…';
+  busyBar.style.width = '18%';
+  const progressTimer = setInterval(() => {
+    const current = parseInt(busyBar.style.width || '18', 10);
+    busyBar.style.width = Math.min(current + 8, 82) + '%';
+    if (current < 35) busyText.textContent = '正在读取 Figma 页面节点…';
+    else if (current < 60) busyText.textContent = '正在整理页面布局和跳转关系…';
+    else busyText.textContent = '正在生成界面关系分析…';
+  }, 900);
+  try {
+    const r = await api('/api/eval/figma', { sources: urls });
+    busyText.textContent = r.ok ? '分析完成，正在关闭窗口…' : '分析失败，正在关闭窗口…';
+    busyBar.style.width = '100%';
+    $('#figmaNote').textContent = r.error || (r.message ? r.message + '，输出：' + (r.report_path || 'data/figma-analysis.md') : 'Figma 分析完成');
+    saveState();
+  } catch (e) {
+    busyText.textContent = '分析失败，正在关闭窗口…';
+    busyBar.style.width = '100%';
+    $('#figmaNote').textContent = 'Figma 分析失败：' + e.message;
+  } finally {
+    clearInterval(progressTimer);
+    setTimeout(() => { busy.hidden = true; }, 500);
+  }
+}
+
+async function searchFeatureDocs() {
+  const keyword = ($('#featureName').value || '').trim();
+  if (!keyword) { toast('请输入本功能关键字', 'warn'); return; }
+  const btn = $('#btnFeatureSearch');
+  btn.disabled = true; btn.textContent = '搜索中…';
+  try {
+    const r = await api('/api/feishu/search', { keyword });
+    if (!r.ok) { toast(r.error || '飞书搜索失败', 'danger'); return; }
+    S.docChecks.pfs = !!r.has_pfs;
+    S.docChecks.frr = !!r.has_frr;
+    syncChecks(); saveState();
+    toast(`飞书搜索完成：${(r.items || []).length} 条结果${r.has_frr ? '，已找到 FRR' : ''}`, 'ok');
+  } catch (e) { toast('飞书搜索失败：' + e.message, 'danger'); }
+  finally { btn.disabled = false; btn.textContent = '搜索'; }
 }
 
 /* ---------------- 步骤 2：代码评估 ---------------- */
@@ -1004,29 +1083,9 @@ function renderCodeFull(r) {
       b += mini('Review change', rv.changes || 0);
       b += mini('topic 修改文件', rv.files || 0);
       b += mini('比对外部符号', rv.symbols || 0);
-      b += mini('本地已有（已跳过）', rv.local_hit || 0, 'dim');
       b += mini('本地缺失', rv.missing || 0, (rv.missing || 0) ? 'r' : 'g');
       b += mini('缺失头文件', rv.headers_missing || 0, (rv.headers_missing || 0) ? 'r' : 'g');
       b += '</div>';
-
-      b += `<div class="alert info" style="margin-top:12px;display:block">`
-        + `topic 侧只读取各 change 的 <b>diff 新增行</b>，未修改的旧代码不会参与接口分析；`
-        + `随后在本地工作区搜索这些修改实际引用的接口。`
-        + `</div>`;
-
-      /* 比对基准：让人确认比的是本地这棵树，不是线上 */
-      const baseRoot = ms.local_root || (ms.baseline && ms.baseline.root) || '';
-      b += `<div class="alert ${r.local_root_fallback ? 'warn' : 'info'}" style="margin-top:12px;display:block">`
-        + `<div><b>比对基准：本地工作区</b> <code>${esc(baseRoot || '—')}</code>`
-        + (ms.repos_scanned ? `（${ms.repos_scanned} 个仓库）` : '')
-        + `</div>`
-        + (r.local_root_fallback
-          ? `<div style="margin-top:6px;color:#ffcc80">注意：你选的目录里没有可用仓库，`
-            + `这次退回到上面这个目录比对，结论不代表你选的那棵树。</div>` : '')
-        + `<div style="margin-top:6px;font-size:11.8px" class="dim">`
-        + `topic 一侧只读 <b>diff 新增行</b>；本地一侧只读上面这棵工作区的文件，`
-        + `不查 origin/分支/任何远端版本。头文件里有定义或声明、或者别处调用过，都算「本地已有」。`
-        + `</div></div>`;
 
       if (ms.note) b += `<div class="alert warn" style="margin-top:12px">${esc(ms.note)}</div>`;
       if (ms.failed && ms.failed.length) {
@@ -1097,10 +1156,6 @@ function renderCodeFull(r) {
       if (mItems.length > 80) {
         b += `<div class="dim" style="margin-top:8px">… 其余 ${mItems.length - 80} 个接口略</div>`;
       }
-      b += `<div class="dim" style="margin-top:10px;font-size:11.5px">`
-        + `判定方式：从 topic diff 新增行提取用到的函数 / 宏 / 类型 → `
-        + `在本地工作区 <code>${esc(baseRoot || '')}</code> 里逐词查找（${esc(ms.how || 'git grep')}）。`
-        + `头文件里有定义/声明、或任何源码里引用过，都算「本地已有」，不列出。</div>`;
       return b;
     })());
 
@@ -1857,6 +1912,8 @@ function bind() {
   // 功能评估：解析需求后自动完成文档评估
   $('#btnCode').onclick = runCodeEval;
   $('#btnPfs').onclick = runPfsEval;
+  $('#btnFigma').onclick = runFigmaEval;
+  $('#btnFeatureSearch').onclick = searchFeatureDocs;
   $('#btnImplement').onclick = runImplementation;
   api('/api/codex/status').then(r => {
     if (!$('#pfsNote').textContent || $('#pfsNote').textContent.includes('Codex')) {

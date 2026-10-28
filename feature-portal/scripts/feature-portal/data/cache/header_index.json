@@ -1,5 +1,5 @@
 {
-  "key": "498073|/home/hgw/pamir",
+  "key": "498097|/home/hgw/pamir",
   "workspace": "/home/hgw/pamir",
   "index": {
     "mhs_hal_adc.h": [
@@ -2258,6 +2258,9 @@
     "sport_hybrid_training_service.h": [
       "/home/hgw/pamir/packages/services/sport/include/hyrox_sim/sport_hybrid_training_service.h"
     ],
+    "sport_hyrox_auto_switch.h": [
+      "/home/hgw/pamir/packages/services/sport/include/hyrox_sim/sport_hyrox_auto_switch.h"
+    ],
     "sport_reminder_service.h": [
       "/home/hgw/pamir/packages/services/sport/include/reminder/sport_reminder_service.h"
     ],
@@ -2855,6 +2858,12 @@
     "sport_summary.pb.h": [
       "/home/hgw/pamir/packages/services/sport/summary/sport_summary.pb.h"
     ],
+    "sport_hyrox_auto_switch_test.h": [
+      "/home/hgw/pamir/packages/services/sport/test/hybrid_training_service/sport_hyrox_auto_switch_test.h"
+    ],
+    "sport_hybrid_training_service_utest.h": [
+      "/home/hgw/pamir/packages/services/sport/test/hybrid_training_service/sport_hybrid_training_service_utest.h"
+    ],
     "watch_api_zidl.h": [
       "/home/hgw/pamir/packages/services/wechatAlita/watch_api_zidl.h"
     ],
@@ -2886,8 +2895,7 @@
       "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/signal.h"
     ],
     "unistd.h": [
-      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/unistd.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/unistd.h"
+      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/unistd.h"
     ],
     "utils.h": [
       "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/utils.h",
@@ -2900,23 +2908,18 @@
       "/home/hgw/pamir/test/drivers/gpu/vender/ambiq/apollo4/graphics/nemagfx_benchmarks/src/utils.h"
     ],
     "mqueue.h": [
-      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/mqueue.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/mqueue.h"
+      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/mqueue.h"
     ],
     "sched.h": [
-      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/sched.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/sched.h"
+      "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/sched.h"
     ],
     "semaphore.h": [
       "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/semaphore.h",
-      "/home/hgw/pamir/framework/bluebox/stack_wrapper/vendor/bcm430132/brcm_bt/port/huami_bt_adapter/osi/include/semaphore.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/semaphore.h"
+      "/home/hgw/pamir/framework/bluebox/stack_wrapper/vendor/bcm430132/brcm_bt/port/huami_bt_adapter/osi/include/semaphore.h"
     ],
     "pthread.h": [
       "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/pthread.h",
-      "/home/hgw/pamir/components/gui/storyboard/include/freertos/pthread.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/freertos/pthread.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/pthread.h"
+      "/home/hgw/pamir/components/gui/storyboard/include/freertos/pthread.h"
     ],
     "fcntl.h": [
       "/home/hgw/pamir/packages/services/wechatAlita/include/FreeRTOS_POSIX/fcntl.h"
@@ -8563,6 +8566,9 @@
     "sport_rt_attr_dublin.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/common/sport_rt_attr_config/sport_rt_attr_dublin.h"
     ],
+    "sport_rt_hyrox_auto_switch_test.h": [
+      "/home/hgw/pamir/framework/engine/sportEngine/test/hyrox_auto_switch/sport_rt_hyrox_auto_switch_test.h"
+    ],
     "alg_wrapper_surfing.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/alg_wrapper/alg_wrapper_surfing.h"
     ],
@@ -8641,6 +8647,9 @@
     "sport_lap_event.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_lap_event.h"
     ],
+    "sport_rt_hyrox_auto_section_boundary.h": [
+      "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_rt_hyrox_auto_section_boundary.h"
+    ],
     "sport_rt_depend_engine_base.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_rt_depend_engine_base.h"
     ],
@@ -8676,6 +8685,9 @@
     ],
     "sport_rt_state_snapshot.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_rt_state_snapshot.h"
+    ],
+    "sport_rt_hyrox_auto_section_boundary_internal.h": [
+      "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_rt_hyrox_auto_section_boundary_internal.h"
     ],
     "sport_rt_route_state.h": [
       "/home/hgw/pamir/framework/engine/sportEngine/sport_rt_engine/include/sport_rt_route_state.h"
@@ -9115,8 +9127,7 @@
       "/home/hgw/pamir/framework/engine/mapEngine/includes_internal/renderer/nanovg/renderer_view_nvg.h"
     ],
     "grecanvas.h": [
-      "/home/hgw/pamir/framework/engine/mapEngine/includes_internal/renderer/nanovg/grecanvas.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/grecanvas.h"
+      "/home/hgw/pamir/framework/engine/mapEngine/includes_internal/renderer/nanovg/grecanvas.h"
     ],
     "renderer_window_glfw.h": [
       "/home/hgw/pamir/framework/engine/mapEngine/includes_internal/renderer/nanovg/renderer_window_glfw.h",
@@ -16140,175 +16151,13 @@
       "/home/hgw/pamir/components/gui/storyboard/src/render-mgr/dma2d/include/gre/sdk/dma2d_ext.h"
     ],
     "greal_pthread.h": [
-      "/home/hgw/pamir/components/gui/storyboard/include/freertos/greal_pthread.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/freertos/greal_pthread.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/linux/greal_pthread.h"
+      "/home/hgw/pamir/components/gui/storyboard/include/freertos/greal_pthread.h"
     ],
     "dirent.h": [
-      "/home/hgw/pamir/components/gui/storyboard/include/freertos/dirent.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/freertos/dirent.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/dirent.h"
+      "/home/hgw/pamir/components/gui/storyboard/include/freertos/dirent.h"
     ],
     "freertos_greal.h": [
-      "/home/hgw/pamir/components/gui/storyboard/include/freertos/freertos_greal.h",
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/freertos/freertos_greal.h"
-    ],
-    "win32_greal.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/win32_greal.h"
-    ],
-    "stdint.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/stdint.h"
-    ],
-    "strings.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/strings.h"
-    ],
-    "inttypes.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/inttypes.h"
-    ],
-    "al.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/OpenAL/al.h"
-    ],
-    "alc.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/OpenAL/alc.h"
-    ],
-    "cdefs.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/win32/sys/cdefs.h"
-    ],
-    "greio.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/greio.h"
-    ],
-    "iodefs.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/iodefs.h"
-    ],
-    "gre_types.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/gre_types.h"
-    ],
-    "iodata.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/iodata.h"
-    ],
-    "gre.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/gre.h"
-    ],
-    "action_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/action_mgr.h"
-    ],
-    "model_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/model_mgr.h"
-    ],
-    "managers.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/managers.h"
-    ],
-    "sbimage.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/sbimage.h"
-    ],
-    "greio_multi.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/greio_multi.h"
-    ],
-    "generic_display.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/generic_display.h",
-      "/home/hgw/pamir/test/drivers/gpu/common/generic_display.h"
-    ],
-    "touch.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/touch.h"
-    ],
-    "data_format.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/data_format.h"
-    ],
-    "fio_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/fio_mgr.h"
-    ],
-    "image_atlas.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/image_atlas.h"
-    ],
-    "timer_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/timer_mgr.h"
-    ],
-    "render_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/render_mgr.h"
-    ],
-    "font_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/font_mgr.h"
-    ],
-    "resource_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/resource_mgr.h"
-    ],
-    "string_map.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/string_map.h"
-    ],
-    "data_key.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/data_key.h"
-    ],
-    "canvas.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/canvas.h"
-    ],
-    "string_match.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/string_match.h"
-    ],
-    "greal_alloc.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/greal_alloc.h"
-    ],
-    "io_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/io_mgr.h"
-    ],
-    "data_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/data_mgr.h"
-    ],
-    "generic_greal.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/generic_greal.h"
-    ],
-    "plugin.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/plugin.h"
-    ],
-    "swrmgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/swrmgr.h"
-    ],
-    "grelib.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/grelib.h"
-    ],
-    "render_common.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/render_common.h"
-    ],
-    "sbresource_vfs.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/sbresource_vfs.h"
-    ],
-    "screen_mgr.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/screen_mgr.h"
-    ],
-    "trace.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/trace.h"
-    ],
-    "deployment.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/deployment.h"
-    ],
-    "swrender.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/swrender.h"
-    ],
-    "string_pool.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/string_pool.h"
-    ],
-    "render_ext.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/render_ext.h"
-    ],
-    "greal_timer.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/greal_timer.h"
-    ],
-    "greal.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/greal.h"
-    ],
-    "render_effect.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/render_effect.h"
-    ],
-    "darray.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/darray.h"
-    ],
-    "image_atlas_structures.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/image_atlas_structures.h"
-    ],
-    "pixel_formats.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/pixel_formats.h"
-    ],
-    "arg_parser.h": [
-      "/home/hgw/pamir/components/gui/storyboard/libs/mhs003/include/gre/sdk/arg_parser.h"
+      "/home/hgw/pamir/components/gui/storyboard/include/freertos/freertos_greal.h"
     ],
     "sbengine_plugins.h": [
       "/home/hgw/pamir/components/gui/storyboard/target/sbengine_plugins.h"
@@ -18181,6 +18030,9 @@
     ],
     "benchmarks.h": [
       "/home/hgw/pamir/test/drivers/gpu/benchmarks/benchmarks.h"
+    ],
+    "generic_display.h": [
+      "/home/hgw/pamir/test/drivers/gpu/common/generic_display.h"
     ],
     "test_local_music.h": [
       "/home/hgw/pamir/test/cts/packages/apps/music/inc/test_local_music.h"

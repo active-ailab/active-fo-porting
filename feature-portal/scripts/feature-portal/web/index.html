@@ -106,7 +106,7 @@
       <pre class="term" id="baseLog" hidden>等待执行…</pre>
     </div>
 
-    <div class="card settings-card" id="feishuCard">
+      <div class="card settings-card developer-only" id="feishuCard" hidden>
       <div class="card-head">
         <h3>准备工作：飞书授权</h3>
         <div class="head-right"><span class="badge muted" id="feishuBadge">检查中…</span><button class="collapse-toggle" type="button" aria-expanded="false" aria-controls="feishuSettings" data-target="feishuSettings">⌄</button></div>
@@ -130,7 +130,7 @@
       </div>
     </div>
 
-    <div class="card settings-card" id="codexCard">
+      <div class="card settings-card developer-only" id="codexCard" hidden>
       <div class="card-head">
         <h3>准备工作：Codex</h3>
         <div class="head-right"><span class="badge muted" id="codexPrepBadge">检查中…</span><button class="collapse-toggle" type="button" aria-expanded="false" aria-controls="codexSettings" data-target="codexSettings">⌄</button></div>
@@ -167,9 +167,9 @@
       <p>完成文档评估和代码评估后，才能进入功能移植。</p>
     </div>
 
-    <div class="field">
+    <div class="field" hidden>
       <label>本次功能名称 / 关键词</label>
-      <input type="text" id="featureName" placeholder="例如：HYROX 混合训练、跳绳计数、血氧监测">
+      <div class="feature-search-row"><input type="text" id="featureName" placeholder="输入本功能关键字"><button class="btn primary" id="btnFeatureSearch">搜索</button></div>
       <span class="tip">用于匹配文档、硬件能力开关和改动文件</span>
     </div>
 
@@ -200,6 +200,15 @@
           </div>
         </div>
         <div class="path-note" id="pfsNote">填写飞书链接和需求标题；将读取标题下方内容并生成 PFS。</div>
+        <div class="requirement-source" style="margin-top:12px">
+          <label for="figmaUrls">Figma 设计链接（支持多个，每行一个）</label>
+          <textarea class="pfs-editor" id="figmaUrls" rows="3" placeholder="https://www.figma.com/design/...&#10;https://www.figma.com/file/..."></textarea>
+          <div class="requirement-row">
+            <button class="btn ghost" id="btnFigma">分析 Figma 页面与跳转</button>
+            <span class="path-note" id="figmaNote">通过已连接的 Figma 插件读取设计；请使用包含节点的链接。</span>
+          </div>
+        </div>
+        <div class="eval-body" id="figmaBody" hidden></div>
         <div class="eval-body" id="pfsBody" hidden></div>
         <div class="implementation-card" id="implementationCard" hidden>
           <div class="card-head">
@@ -449,6 +458,18 @@
       <div class="spinner" aria-hidden="true"></div>
       <p id="downloadBusyText">正在执行 gerrit_dl.py，请稍候…</p>
       <p class="dim">已下载的 change 会由脚本自动识别，冲突会在完成后显示。</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal eval-busy" id="figmaBusy" hidden aria-live="polite" aria-busy="true">
+  <div class="modal-box narrow">
+    <div class="modal-head"><h3>正在分析 Figma</h3></div>
+    <div class="modal-body eval-busy-body">
+      <div class="spinner"></div>
+      <p id="figmaBusyText">正在准备分析…</p>
+      <div class="progress-track"><div class="progress-bar" id="figmaBusyBar"></div></div>
+      <div class="path-note">请保持页面打开，分析完成后窗口会自动关闭。</div>
     </div>
   </div>
 </div>

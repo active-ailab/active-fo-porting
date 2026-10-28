@@ -1,0 +1,131 @@
+{
+  "ok": true,
+  "map": "/home/hgw/monaco/build/out_hub/sensorhub@mhs003/binary/sensorhub@mhs003.map",
+  "map_h": "10.63MB",
+  "target": "sensorhub@mhs003",
+  "config": "/home/hgw/monaco/build/.config",
+  "regions": [
+    {
+      "name": "flash",
+      "used": 617212,
+      "total": 638848,
+      "free": 21636,
+      "pct": 96.61,
+      "used_h": "602.75KB",
+      "total_h": "623.88KB",
+      "free_h": "21.13KB",
+      "note": "",
+      "sections": [
+        {
+          "section": ".lcpu_header",
+          "size": 32,
+          "role": "run"
+        },
+        {
+          "section": ".text",
+          "size": 461114,
+          "role": "run"
+        },
+        {
+          "section": ".fwramdriver",
+          "size": 6242,
+          "role": "run"
+        },
+        {
+          "section": ".rodata",
+          "size": 106032,
+          "role": "run"
+        },
+        {
+          "section": ".data",
+          "size": 41416,
+          "role": "load"
+        },
+        {
+          "section": ".noninit_mem",
+          "size": 184,
+          "role": "load"
+        },
+        {
+          "section": ".ramfw",
+          "size": 1324,
+          "role": "load"
+        }
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "name": ".lcpu_header",
+      "size": 32,
+      "size_h": "32.00B",
+      "addr": "0x80f64000"
+    },
+    {
+      "name": ".text",
+      "size": 461114,
+      "size_h": "450.31KB",
+      "addr": "0x80f64280"
+    },
+    {
+      "name": ".fwramdriver",
+      "size": 6242,
+      "size_h": "6.10KB",
+      "addr": "0x80fd4c00"
+    },
+    {
+      "name": ".rodata",
+      "size": 106032,
+      "size_h": "103.55KB",
+      "addr": "0x80fd6468"
+    },
+    {
+      "name": ".data",
+      "size": 41416,
+      "size_h": "40.45KB",
+      "addr": "0x80f0d000"
+    },
+    {
+      "name": ".noninit_mem",
+      "size": 184,
+      "size_h": "184.00B",
+      "addr": "0x80f171c8"
+    },
+    {
+      "name": ".bss",
+      "size": 289384,
+      "size_h": "282.60KB",
+      "addr": "0x80f17338"
+    },
+    {
+      "name": ".ramfw",
+      "size": 1324,
+      "size_h": "1.29KB",
+      "addr": "0x80f5dda0"
+    },
+    {
+      "name": ".backtrace",
+      "size": 0,
+      "size_h": "0.00B",
+      "addr": "0x80f62000"
+    },
+    {
+      "name": ".stack",
+      "size": 2048,
+      "size_h": "2.00KB",
+      "addr": "0x80f61800"
+    }
+  ],
+  "exbin": null,
+  "code_cap": 16474112,
+  "code_cap_h": "15.71MB",
+  "code_pct": 3.75,
+  "warnings": [
+    {
+      "level": "warn",
+      "text": "FLASH 已用 96.6%，剩余 21.13KB，需要关注增量"
+    }
+  ],
+  "parse_ms": 128,
+  "at": "2026-10-28 09:24:39"
+}
