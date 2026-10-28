@@ -1051,13 +1051,15 @@ async function runCodeEval() {
   $('#evalBusy').hidden = false;
   card.classList.add('running');
   body.innerHTML = '<div class="dim">正在读 topic 补丁、和本地工作区代码比对、解析 .config 与 .map …</div>';
+  renderFocusChecks(null, '评估中');
   $('#codeResult').innerHTML = '';
   try {
     const r = await api('/api/eval/code', {
       feature: name, topic: topic, paths: [], path: evalLocalPath()
     });
-    if (!r.ok) { toast(r.error || '代码评估失败', 'danger'); return; }
+    if (!r.ok) { renderFocusChecks(null, '评估未完成'); toast(r.error || '代码评估失败', 'danger'); return; }
     body.innerHTML = renderCodeBrief(r);
+    renderFocusChecks(r.focus_checks);
     $('#codeResult').innerHTML = renderCodeFull(r);
     S.paths.code = true;
     syncChecks();
@@ -1067,12 +1069,28 @@ async function runCodeEval() {
     }
   } catch (e) {
     body.innerHTML = '<div class="alert danger">' + esc(e.message) + '</div>';
+    renderFocusChecks(null, '评估未完成');
   } finally {
     card.classList.remove('running');
     $('#evalBusy').hidden = true;
     document.body.classList.remove('eval-busy-active');
     runCodeEval.busy = false;
   }
+}
+
+function renderFocusChecks(checks, initial) {
+  const rows = [
+    ['keys', '按键使用'], ['crown', '表冠使用'],
+    ['resolution', '方圆屏分辨率适配'], ['screen_macros', '方圆屏宏使用'],
+    ['algorithms', '算法依赖'], ['engines_cores', 'Engine 与大小核']
+  ];
+  const labels = { ok: '已核对', issue: '发现问题', unknown: '待确认', not_applicable: '不涉及' };
+  $('#focusChecks').innerHTML = rows.map(([key, name]) => {
+    const item = (checks || {})[key] || {};
+    const status = labels[item.status] ? item.status : 'unknown';
+    const detail = item.detail || (initial || '开始评估后显示');
+    return `<div class="focus-row ${status}"><div><b>${esc(name)}</b><span class="focus-status">${esc(initial || labels[status])}</span></div><p>${esc(detail)}</p></div>`;
+  }).join('');
 }
 
 function renderCodeBrief(r) {
@@ -1098,7 +1116,7 @@ function renderCodeFull(r) {
   let html = '';
   const rules = r.rules_review;
   if (rules && (!rules.ok || (rules.has_issues !== false && String(rules.text || '').trim()))) {
-    html += '<div class="card"><h3>AI 代码评估</h3>'
+    html += '<div class="card risk-card"><h3>AI 代码评估</h3>'
       + '<div style="white-space:pre-wrap">'
       + esc(rules.ok ? rules.text : ('规则评审未完成：' + (rules.error || '未知原因')))
       + '</div></div>';
@@ -1902,6 +1920,7 @@ async function saveSelftest() {
 
 /* ---------------- 事件绑定 ---------------- */
 function bind() {
+  renderFocusChecks();
   $$('.collapse-toggle').forEach(btn => {
     const toggle = () => {
       const panel = $('#' + btn.dataset.target);

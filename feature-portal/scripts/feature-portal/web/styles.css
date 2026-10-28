@@ -1097,3 +1097,65 @@ body.stage-success .actionbar { border-top-color: #2f8f5d; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 浅色工作台与重点风险展示 */
+:root {
+  --bg: #f4f7f5; --bg-soft: #edf3ef; --panel: #fff; --panel-2: #f5f8f6;
+  --line: #cfddd4; --line-soft: #e3ece6; --txt: #1d3027; --txt-2: #425b4d;
+  --dim: #667d70; --green: #087b49; --green-dim: #176c45; --red: #bc242c;
+  --amber: #91600b; --blue: #176d91;
+}
+body { background: radial-gradient(1000px 500px at 10% -15%, #dcefe3, transparent 65%), var(--bg); }
+body.stage-success { background: linear-gradient(180deg, #d9f5e4, #f4faf6); }
+.topbar, .actionbar { background: rgba(255,255,255,.94); }
+.logo { background: #e1f3e7; border-color: #b9dac5; }
+.chip, .step, .dir-shortcuts button, .collapse-toggle, .seg button { background: #f5f9f6; color: var(--txt-2); }
+.chip.on { color: #11683c; border-color: #aad5b9; }
+.chip.off { color: #a8222b; border-color: #eab5b7; }
+.step .s-idx { background: #e8f0ea; }
+.step.active, body.stage-success .step.active { background: #e4f5e9; border-color: #79bf96; }
+.step.done .s-idx { background: #d5efdf; color: #087b49; }
+.card, .eval-card, .sect, .modal-box { background: #fff; box-shadow: 0 5px 22px rgba(37,72,48,.06); }
+.eval-card.checked { background: #f3fbf5; border-color: #9cceb0; }
+.sect-head { background: #f6faf7; }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea,
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus,
+.dir-path #dirJump { background: #fff !important; color: var(--txt); }
+input:not([type="checkbox"]):not([type="radio"]):-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #fff inset; }
+input::placeholder, textarea::placeholder { color: #869a8e; }
+.btn { background: #f0f6f2; color: var(--txt); }
+.btn:hover:not(:disabled), .btn.ghost:hover:not(:disabled) { background: #e2f1e7; }
+.btn.primary { background: #087b49; color: #fff; border-color: #087b49; }
+.btn.danger { color: #a71e27; border-color: #e9a5aa; }
+.requirement-source, .implementation-card { background: #f1faf4; border-color: #b8dcc4; box-shadow: none; }
+.requirement-source > label { color: #176c45; }
+.pfs-lines, .mini, .doc-check, .base-status, .check-item, .bar, .card-sub code, .dir-shortcuts button { background: #f5f8f6; }
+.chk-box { background: #fff; border-color: #a8bcaf; }
+.badge, .tag, .lv.ok { background: #edf7f0; border-color: #bcddc7; color: #176c45; }
+.badge.muted { background: #edf3f6; border-color: #c6d9e1; color: #365e71; }
+.badge.warn, .lv.warn { background: #fff7e7; border-color: #edcf91; color: #815506; }
+.badge.danger, .tag.r, .lv.danger { background: #fff0f0; border-color: #eaaeb2; color: #a91f29; }
+.alert.ok { background: #ebf8ef; border-color: #afd9bc; color: #176c45; }
+.alert.warn { background: #fff7e8; border-color: #ebca85; color: #815506; }
+.alert.danger { background: #fff0f0; border-color: #e7898e; color: #a21721; }
+.alert.info { background: #edf7fb; border-color: #b8dbe8; color: #255f76; }
+.risk-card { background: #fff2f2; border: 1px solid #dc777d; border-left: 4px solid #c52530; color: #9f1720; }
+.risk-card h3 { color: #a71923; }
+.danger-note, .probe.fail, .dir-hint.err, .dir-hint code { color: #b3252e; }
+.term, .offline-cmd { background: #f0f5f1; color: #294738; }
+.term .err { color: #ad2029; } .term .okl { color: #087b49; }
+.effort-big, .success-card, .final-card { background: #ecf9f0; border-color: #addaba; }
+.final-card h3, .final-card p, .ok-txt p, .probe.ok { color: #176c45; }
+.final-card.bad { background: #fff0f0; border-color: #e7898e; }
+.final-card.bad h3, .final-card.bad p { color: #a71923; }
+table.tbl tbody tr:hover, .dir-row:hover { background: #eef7f1; }
+.dir-row.sel { background: #dff3e5; color: #176c45; }
+.focus-checks { display: grid; gap: 7px; margin-top: 14px; }
+.focus-row { padding: 9px 11px; border: 1px solid var(--line-soft); border-radius: 8px; background: #f7faf8; }
+.focus-row > div { display: flex; justify-content: space-between; gap: 10px; }
+.focus-row b { font-size: 12.5px; }
+.focus-status { font-size: 11.5px; color: var(--dim); white-space: nowrap; }
+.focus-row p { margin: 3px 0 0; font-size: 12px; color: var(--txt-2); overflow-wrap: anywhere; }
+.focus-row.ok .focus-status { color: #087b49; }
+.focus-row.issue { background: #fff1f1; border-color: #e99095; }
+.focus-row.issue b, .focus-row.issue p, .focus-row.issue .focus-status { color: #a71923; }
