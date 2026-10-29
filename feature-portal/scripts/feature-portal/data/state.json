@@ -1,5 +1,5 @@
 {
-  "workspace": "/home/hgw/pamir",
+  "workspace": "/home/hgw/workspace/github/active-fo-porting/feature-portal",
   "feature_name": "HYROX 校准优化",
   "eval": {
     "doc": {
@@ -16,7 +16,7 @@
     "authorized": false
   },
   "port": {
-    "path": "/home/hgw/pamir",
+    "path": "/home/hgw/monaco",
     "topic": "https://gerrit.huami.com/q/topic:%22hyrox%E6%A0%A1%E5%87%86%E4%BC%98%E5%8C%96-master%22",
     "conflicts": [],
     "done": false,
@@ -25,8 +25,8 @@
     "last_status": "partial"
   },
   "build": {
-    "family": "mhs003",
-    "product": "pike",
+    "family": "mhs003s",
+    "product": "oslo",
     "threads": "24",
     "ok": false,
     "at": "2026-10-29 09:43:50",
@@ -43,15 +43,16 @@
     "at": ""
   },
   "recent_paths": [
-    "/home/hgw/pamir",
     "/home/hgw/monaco",
+    "/home/hgw/pamir",
     "/home/hgw/master",
     "https://gerrit.huami.com/q/topic:%22hyrox%E6%A0%A1%E5%87%86%E4%BC%98%E5%8C%96-master%22"
   ],
   "baseline": {
-    "path": "/home/hgw/pamir",
-    "xml": "pike.xml",
-    "branch": "releases/pike/ota4"
+    "path": "/home/hgw/monaco",
+    "xml": "oslo.xml",
+    "branch": "releases/abs_stable/ota",
+    "at": "2026-10-29 15:53:17"
   },
   "pfs": {
     "content": "1、新增进入运动后直接进入左右手选择页面和Template ReadyGo页面的流程\n2、新增进入运动后直接进入ReadyGo页面的流程\n3、新增HSP连接完成后进入ReadyGo页面的流程\n4、新增在HSP连接页面点击跳过后进入ReadyGo页面的流程\n5、新增从ReadyGo页面点击Go进入自动校准提示页，并支持开始10秒倒计时或退出返回ReadyGo页面\n6、新增运动开始后跑步阶段自动校准成功时通过toast和震动提示\n7、明确运动开始后跑步阶段自动校准未成功时不进行提示\n8、增加HSP版本号确认逻辑，版本号未确认支持动态校准时进入动态校准，否则进入静态校准流程\n9、新增静态校准首次进入时的佩戴提示页、校准确认页和开始校准流程\n10、新增多运动类型共用首次佩戴提示页的流程\n11、新增跳过校准后的跳过确认页，并支持点击校准进入开始校准或点击继续跳过进入ReadyGo/Template ReadyGo页面\n12、新增从校准确认页进入校准指导和佩戴提示页的流程\n13、新增校准成功后进入成功确认页，再返回ReadyGo/Template ReadyGo页面\n14、新增校准失败后进入失败确认页，再返回校准确认页\n15、保持校准成功或失败对运动中及运动记录的对齐逻辑与当前线上一致",

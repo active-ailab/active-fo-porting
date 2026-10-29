@@ -22,6 +22,24 @@
 set -u
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CALLER_DIR=$PWD
+
+# The caller selects the checkout by choosing its working directory. Never
+# infer the checkout from the helper's own installation directory.
+REPO_ROOT=""
+find_repo_root() {
+  local dir="$1"
+  while [[ "$dir" != / ]]; do
+    if [[ -d "$dir/.repo" ]]; then
+      REPO_ROOT="$dir"
+      return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+  if [[ -d /.repo ]]; then REPO_ROOT=/; return 0; fi
+  return 1
+}
+find_repo_root "$CALLER_DIR" || true
 
 # git clean 时需要保留的未跟踪文件（空格分隔，路径相对各仓库根目录）。
 # 默认保留签名密钥 build/sign.pem，避免强制清理后丢失。
@@ -91,25 +109,35 @@ if [[ -n "$TARGET_BRANCH" ]] && ! git check-ref-format --branch "$TARGET_BRANCH"
 fi
 
 if [[ -n "$MANIFEST" ]]; then
+  # Resolve manifest names against the selected checkout. Preserve an explicit
+  # path when the caller supplied an existing file.
+  if [[ -f "$CALLER_DIR/$MANIFEST" ]]; then
+    MANIFEST=$(cd "$CALLER_DIR" && realpath "$MANIFEST")
+  elif [[ -n "$REPO_ROOT" && -f "$REPO_ROOT/.repo/manifests/$MANIFEST" ]]; then
+    MANIFEST="$MANIFEST"
+  fi
   SYNC_ARGS=(-m "$MANIFEST" "${SYNC_ARGS[@]}")
-  if [[ ! -f "$MANIFEST" && ! -f "$SCRIPT_DIR/.repo/manifests/$MANIFEST" ]]; then
+  if [[ ! -f "$MANIFEST" && ( -z "$REPO_ROOT" || ! -f "$REPO_ROOT/.repo/manifests/$MANIFEST" ) ]]; then
     echo "⚠️ 未找到 manifest 文件: $MANIFEST（仍会原样传给 repo sync）" >&2
   fi
 fi
 
-if command -v repo >/dev/null 2>&1; then
+if [[ -n "$REPO_ROOT" && -x "$REPO_ROOT/.repo/repo/repo" ]]; then
+  REPO_CMD=("$REPO_ROOT/.repo/repo/repo")
+elif command -v repo >/dev/null 2>&1; then
   REPO_CMD=(repo)
-elif [[ -x "$SCRIPT_DIR/.repo/repo/repo" ]]; then
-  REPO_CMD=("$SCRIPT_DIR/.repo/repo/repo")
 else
   echo "❌ 找不到 repo 命令，请在 repo 项目根目录下运行。" >&2
   exit 1
 fi
 
-if [[ ! -d "$SCRIPT_DIR/.repo" ]]; then
-  echo "❌ $SCRIPT_DIR 不是 repo 项目根目录。" >&2
+if [[ -z "$REPO_ROOT" ]]; then
+  echo "❌ 当前选择的代码目录及其祖先中未找到 .repo。请在目标 repo 工作区内运行。" >&2
   exit 1
 fi
+
+# repo commands and all project paths below are relative to the checkout root.
+SCRIPT_DIR="$REPO_ROOT"
 
 # 并发度：默认 8；用户显式传了 -j/--jobs 时不再追加
 JOBS=8
