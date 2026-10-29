@@ -2037,6 +2037,9 @@ function bind() {
     $('#dirModal').hidden = true;
     if (!picked) { toast('还没选目录', 'warn'); return; }
     if (dirState.target === 'base') {
+      // 先立即回填选择结果，再异步切换工作区并刷新 manifest/分支。
+      $('#basePath').value = picked;
+      $('#baseBadge').textContent = '切换中…';
       switchWorkspace(picked);
     }
   };

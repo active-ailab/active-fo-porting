@@ -3967,8 +3967,6 @@ def api_workspace_switch(q, body):
     p = os.path.abspath(normalize_workspace_path(p))
     if not os.path.isdir(p):
         return {"ok": False, "error": "目录不存在: %s" % p}
-    if not os.path.isdir(os.path.join(p, ".repo")):
-        return {"ok": False, "error": "不是 repo 工作区（缺 .repo 目录）: %s" % p}
     WORKSPACE = p
     # 与路径强绑定的缓存全部作废
     _MANIFEST["mtime"] = 0
