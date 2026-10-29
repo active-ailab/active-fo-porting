@@ -17,18 +17,15 @@
 # 默认行为即执行同步（-j8）；*.xml 参数自动当作 -m <manifest>。
 # 已自动附加 --force-sync --force-remove-dirty --prune。
 #
-# 清理时保留的未跟踪文件可通过环境变量 REPO_FORCE_KEEP_PATHS 配置
-# （空格分隔，相对各仓库根目录），默认 "build/sign.pem"；
-# 显式 export REPO_FORCE_KEEP_PATHS="" 可恢复为全部清除。
+# 清理时始终保留 build/sign.pem；环境变量只能追加其它保留路径。
 
 set -u
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # git clean 时需要保留的未跟踪文件（空格分隔，路径相对各仓库根目录）。
-# 可通过环境变量 REPO_FORCE_KEEP_PATHS 覆盖；显式设为空字符串则不保留任何文件。
 # 默认保留签名密钥 build/sign.pem，避免强制清理后丢失。
-KEEP_PATHS="${REPO_FORCE_KEEP_PATHS-build/sign.pem}"
+KEEP_PATHS="build/sign.pem ${REPO_FORCE_KEEP_PATHS-}"
 
 REPO_CMD=()
 TARGET_BRANCH=""

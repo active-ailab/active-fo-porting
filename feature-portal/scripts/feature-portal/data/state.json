@@ -1,5 +1,5 @@
 {
-  "workspace": "/home/hgw/monaco",
+  "workspace": "/home/hgw/workspace/github/active-fo-porting/feature-portal",
   "feature_name": "HYROX 校准优化",
   "eval": {
     "doc": {
@@ -25,11 +25,11 @@
     "last_status": "partial"
   },
   "build": {
-    "family": "apollo4",
-    "product": "altai",
+    "family": "mhs003",
+    "product": "pike",
     "threads": "24",
     "ok": false,
-    "at": "",
+    "at": "2026-10-29 09:43:50",
     "mode": "debug"
   },
   "flash": {
@@ -43,7 +43,8 @@
     "at": ""
   },
   "recent_paths": [
-    "/home/hgw/pamir"
+    "/home/hgw/pamir",
+    "https://gerrit.huami.com/q/topic:%22hyrox%E6%A0%A1%E5%87%86%E4%BC%98%E5%8C%96-master%22"
   ],
   "baseline": {
     "path": "/home/hgw/pamir",

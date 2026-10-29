@@ -591,6 +591,13 @@ async function loadBaseline(keepSel) {
   S.base = r;
   // 后端是工作区的权威来源，直接对齐（避免 state 里的旧路径与真实根不一致）
   $('#basePath').value = r.workspace;
+  try {
+    const projectResult = await api('/api/projects', { path: r.workspace });
+    if (projectResult.ok && projectResult.projects) {
+      S.boot.projects = projectResult.projects;
+      renderProjects();
+    }
+  } catch (e) { /* 基线页面仍可继续使用 */ }
 
   const sel = $('#baseXml');
   const prev = keepSel ? sel.value
@@ -1744,6 +1751,8 @@ function appendLog(el, lines) {
     frag.appendChild(span);
   });
   el.appendChild(frag);
+  // 编译日志只保留最后 1000 行，避免长时间编译导致页面卡顿。
+  while (el.childElementCount > 1000) el.removeChild(el.firstElementChild);
   el.scrollTop = el.scrollHeight;
 }
 
@@ -1759,10 +1768,12 @@ async function startBuild() {
   $('#buildState').textContent = '编译中';
   $('#buildState').className = 'run-state run';
   $('#btnBuild').disabled = true;
+  $('#btnStopBuild').hidden = false;
 
   try {
     const r = await api('/api/build/start', {
       family: fam, product: prod,
+      path: $('#basePath').value.trim(),
       threads: $('#inpThreads').value,
       mode: $('#selBuildMode').value || 'debug',
       extra: $('#inpExtra').value
@@ -1772,11 +1783,14 @@ async function startBuild() {
       $('#buildState').textContent = '失败';
       $('#buildState').className = 'run-state fail';
       $('#btnBuild').disabled = false;
+      $('#btnStopBuild').hidden = true;
       return;
     }
+    window.currentBuildJobId = r.job.id;
     appendLog(logEl, ['$ cd ' + r.cwd + '\n$ ' + r.cmd + '\n']);
     const job = await followJob(r.job.id, logEl, $('#buildState'));
     $('#btnBuild').disabled = false;
+    $('#btnStopBuild').hidden = true;
     const ok = job.status === 'ok';
     const res = await api('/api/build/result', { ok: ok });
     if (ok) {
@@ -1790,6 +1804,22 @@ async function startBuild() {
     $('#buildState').textContent = '失败';
     $('#buildState').className = 'run-state fail';
     $('#btnBuild').disabled = false;
+    $('#btnStopBuild').hidden = true;
+  }
+}
+
+async function stopBuild() {
+  const id = window.currentBuildJobId;
+  if (!id) return;
+  $('#btnStopBuild').disabled = true;
+  try {
+    await api('/api/job/cancel', { id: id });
+    $('#buildState').textContent = '已停止';
+    $('#buildState').className = 'run-state fail';
+  } finally {
+    $('#btnBuild').disabled = false;
+    $('#btnStopBuild').hidden = true;
+    $('#btnStopBuild').disabled = false;
   }
 }
 
@@ -2021,6 +2051,7 @@ function bind() {
   $('#selProduct').onchange = () => { updateBuildNote(); saveState(); };
   $('#inpExtra').oninput = updateBuildNote;
   $('#btnBuild').onclick = startBuild;
+  $('#btnStopBuild').onclick = stopBuild;
   $('#selBuildMode').onchange = updateBuildNote;
   $('#btnGoFlash').onclick = () => openFlashModal({});
   $('#flashConfirm').onclick = doFlash;

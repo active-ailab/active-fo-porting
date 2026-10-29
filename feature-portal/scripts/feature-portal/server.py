@@ -83,8 +83,8 @@ def detect_workspace():
         cands.append(env)
     # 本文件位于 <ws>/tools/feature-portal/server.py
     cands.append(os.path.dirname(os.path.dirname(PORTAL_DIR)))
-    cands.append("/home/hgw/monaco")
-    cands.append("/home/hgw/workspace")
+    cands.append(os.getcwd())
+    cands.append(os.path.expanduser("~"))
     for c in cands:
         if not c:
             continue
@@ -1402,6 +1402,7 @@ class Job(object):
         self.ended = ""
         self.meta = {}
         self._proc = None
+        self.cancelled = False
         self._env = env
         self._shell = shell
 
@@ -1450,7 +1451,7 @@ def start_job(name, cmd, cwd, env=None, shell=False, input_text=None):
             for line in job._proc.stdout:
                 job.append(line)
             job.rc = job._proc.wait()
-            job.status = "ok" if job.rc == 0 else "fail"
+            job.status = "cancelled" if job.cancelled else ("ok" if job.rc == 0 else "fail")
         except Exception as exc:
             job.append("!! 启动失败: %s" % exc)
             job.rc = -1
@@ -1470,9 +1471,53 @@ def start_job(name, cmd, cwd, env=None, shell=False, input_text=None):
 VARIANT_SUFFIX = ("boot", "recovery", "ht", "jlinkbin", "sensorhub", "fct",
                   "coretest", "ota", "debug")
 
+def project_root(path):
+    p = os.path.abspath(normalize_workspace_path(path or WORKSPACE))
+    for _ in range(8):
+        if os.path.isdir(os.path.join(p, "configs")) and os.path.isdir(os.path.join(p, "build")):
+            return p
+        parent = os.path.dirname(p)
+        if parent == p:
+            break
+        p = parent
+    return os.path.abspath(normalize_workspace_path(path or WORKSPACE))
 
-def list_projects():
-    cfg_root = os.path.join(WORKSPACE, "configs")
+def active_build_projects(root):
+    """使用 active-build 自身的规则获取 Family / Project。"""
+    candidates = []
+    if os.environ.get("ACTIVE_BUILD_SRC"):
+        candidates.append(os.environ["ACTIVE_BUILD_SRC"])
+    exe = shutil.which("active-build")
+    if exe:
+        candidates.append(os.path.join(os.path.dirname(os.path.realpath(exe)), "..", "src"))
+    candidates.append("/home/hgw/workspace/active-build-script/cli/src")
+    code = "import json,sys; from active_cli.active_build_cli import build_families,build_projects; r=sys.argv[1]; c=sys.argv[2]; f=build_families(c); print(json.dumps({'families':f,'products':{x:build_projects(r,c,x) for x in f}}))"
+    for source in candidates:
+        source = os.path.abspath(source)
+        if not os.path.isdir(os.path.join(source, "active_cli")):
+            continue
+        try:
+            p = subprocess.run([sys.executable, "-c", code, root, os.path.join(root, "configs")],
+                               env=dict(os.environ, PYTHONPATH=source), text=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+            if p.returncode == 0:
+                return json.loads(p.stdout)
+        except Exception:
+            pass
+    return None
+
+
+def list_projects(workspace=None):
+    root = project_root(workspace or WORKSPACE)
+    active = active_build_projects(root)
+    if active is not None:
+        state = json_read(os.path.join(root, "build", ".active-build-state.json"), {}) or {}
+        return {"families": active.get("families", []), "products": active.get("products", {}),
+                "active": {"family": state.get("family", ""), "product": state.get("project", ""),
+                           "threads": state.get("threads", "24")}}
+    # 不再用门户自己的简化规则冒充 active-build 结果。
+    return {"families": [], "products": {}, "active": {"family": "", "product": "", "threads": "24"}}
+    cfg_root = os.path.join(root, "configs")
     families = []
     products = {}
     if os.path.isdir(cfg_root):
@@ -1501,7 +1546,7 @@ def list_projects():
             if prods:
                 families.append(fam)
                 products[fam] = sorted(prods)
-    state = json_read(os.path.join(WORKSPACE, "build", ".active-build-state.json"), {}) or {}
+    state = json_read(os.path.join(root, "build", ".active-build-state.json"), {}) or {}
     return {
         "families": families,
         "products": products,
@@ -3709,6 +3754,11 @@ def api_bootstrap(q, body):
         "server_time": now_str(),
     }
 
+@route("/api/projects", ("GET", "POST"))
+def api_projects(q, body):
+    path = (body or {}).get("path") if body else (q.get("path") or [""])[0]
+    return {"ok": True, "projects": list_projects(path or WORKSPACE)}
+
 
 @route("/api/state", ("POST",))
 def api_state_set(q, body):
@@ -3718,14 +3768,14 @@ def api_state_set(q, body):
 
 @route("/api/fs/list")
 def api_fs_list(q, body):
-    path = unquote((q.get("path") or [WORKSPACE])[0])
+    path = unquote((q.get("path") or [os.path.expanduser("~")])[0])
     if not path:
-        path = WORKSPACE
+        path = os.path.expanduser("~")
     if not os.path.isabs(path):
         path = os.path.join(WORKSPACE, path)
     path = os.path.normpath(path)
     if not os.path.isdir(path):
-        path = WORKSPACE
+        path = os.path.expanduser("~")
     dirs, files = [], []
     try:
         for name in sorted(os.listdir(path)):
@@ -4872,7 +4922,10 @@ def api_build_start(q, body):
     if not re.match(r"^\d+$", threads) or int(threads) < 1:
         return {"ok": False, "error": "线程数必须是正整数"}
     extra = (b.get("extra") or "").strip()
-    build_dir = os.path.join(WORKSPACE, "build")
+    root = project_root(b.get("path") or WORKSPACE)
+    build_dir = os.path.join(root, "build")
+    if not os.path.isdir(build_dir):
+        return {"ok": False, "error": "当前代码目录未找到 build 目录，请选择项目根目录或其子目录"}
 
     # 写入 active-build 的激活状态，让无参执行时用这套配置
     if family and product:
@@ -5024,6 +5077,31 @@ def api_job(q, body):
     if not job:
         return {"ok": False, "error": "job 不存在或已过期"}
     return {"ok": True, "job": job.snapshot(since)}
+
+@route("/api/job/cancel", ("POST",))
+def api_job_cancel(q, body):
+    jid = (body or {}).get("id", "")
+    job = JOBS.get(jid)
+    if not job:
+        return {"ok": False, "error": "job 不存在或已过期"}
+    if job.status != "running":
+        return {"ok": True, "job": job.snapshot()}
+    job.cancelled = True
+    job.append("!! 用户请求停止编译")
+    proc = job._proc
+    if proc and proc.poll() is None:
+        try:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+        except OSError:
+            pass
+    job.status = "cancelled"
+    job.rc = -15
+    job.ended = now_str()
+    return {"ok": True, "job": job.snapshot()}
 
 
 # ---------------- 生命周期：页面登记 / 关闭即退出 ----------------
